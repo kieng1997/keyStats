@@ -2,7 +2,7 @@
 
 > 本项目是 [debugtheworldbot/keyStats](https://github.com/debugtheworldbot/keyStats) 的 Fork，在上游基础上继续维护与调整。感谢原作者及贡献者，保留原有版权声明与 MIT 许可证。
 > 上游仓库：<https://github.com/debugtheworldbot/keyStats>
-> 当前 Fork 仓库：<https://github.com/lishaosongs/keyStats>
+> 当前 Fork 仓库：<https://github.com/kieng1997/keyStats>
 
 KeyStats 是一个轻量的 Windows 系统托盘应用，用于统计键盘和鼠标的使用量：按键次数、鼠标点击次数、鼠标移动距离和滚动距离。它只保存聚合统计数据，不记录输入内容。
 
@@ -29,7 +29,7 @@ KeyStats 是一个轻量的 Windows 系统托盘应用，用于统计键盘和�
 
 从当前 Fork 的 Releases 页面下载构建包：
 
-<https://github.com/lishaosongs/keyStats/releases>
+<https://github.com/kieng1997/keyStats/releases>
 
 解压后运行 `KeyStats.exe`，程序会常驻系统托盘并自动开始统计。首次启动时 Windows 可能显示安全提示，确认后运行即可。
 

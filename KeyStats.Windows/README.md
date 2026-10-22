@@ -26,7 +26,7 @@
 
 ### 下载与安装
 
-1. 从 [Releases](https://github.com/your-repo/releases) 下载最新版本的 `KeyStats-Windows-*.zip`
+1. 从 [Releases](https://github.com/kieng1997/keyStats/releases) 下载最新版本的 `KeyStats-Windows-*.zip`
 2. 解压到任意目录（例如 `C:\Program Files\KeyStats`）
 3. 运行 `KeyStats.exe` 即可开始使用
 

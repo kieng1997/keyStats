@@ -17,8 +17,8 @@ namespace KeyStats.Views;
 
 public partial class SettingsWindow : Window
 {
-    private const string GitHubUrl = "https://github.com/lishaosongs/keyStats";
-    private const string LatestReleaseApiUrl = "https://api.github.com/repos/lishaosongs/keyStats/releases/latest";
+    private const string GitHubUrl = "https://github.com/kieng1997/keyStats";
+    private const string LatestReleaseApiUrl = "https://api.github.com/repos/kieng1997/keyStats/releases/latest";
     private const string ReleasesUrl = GitHubUrl + "/releases";
     private const double WindowEdgeMargin = 16;
     private static readonly HttpClient UpdateHttpClient = CreateUpdateHttpClient();
