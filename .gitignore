@@ -1,0 +1,6 @@
+dist
+build/
+.entire/logs/entire.log
+
+# Claude
+.claude/settings.json

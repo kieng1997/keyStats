@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    env:
+      KEYSTATS_SYNC_SERVICE_URL: ${{ vars.KEYSTATS_SYNC_PRODUCTION_URL }}
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build Windows app
+        shell: pwsh
+        working-directory: KeyStats.Windows
+        run: |
+          $version = '${{ steps.version.outputs.VERSION }}'
+          $syncUrl = $env:KEYSTATS_SYNC_SERVICE_URL
+          if ([string]::IsNullOrWhiteSpace($syncUrl)) {
+            Write-Host 'Sync service URL not configured; building without sync networking.'
+            .\build.ps1 -Configuration Release -Version $version
+          }
+          else {
+            if ($syncUrl -notmatch '^https://[A-Za-z0-9.-]+\.workers\.dev/?$') {
+              throw 'KEYSTATS_SYNC_PRODUCTION_URL must be a production workers.dev URL.'
+            }
+            .\build.ps1 -Configuration Release -Version $version -SyncServiceBaseUrl $syncUrl
+          }
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: KeyStats.Windows/dist/*.zip
+          if-no-files-found: error
+
+  create-release:
+    needs: [build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-zip
+          path: release-assets/windows
+
+      - name: List artifacts
+        run: ls -la release-assets/windows
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release-assets/windows/*.zip
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-beta') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify Release
+        run: echo "Release v${{ needs.build-windows.outputs.version }} created successfully"
