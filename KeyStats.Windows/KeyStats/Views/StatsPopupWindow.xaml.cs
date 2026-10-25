@@ -84,6 +84,11 @@ public partial class StatsPopupWindow : Window
             RestoreWindowModeBounds();
             App.CurrentApp?.TrackPageView("stats_popup");
         }
+        else if (IsVisible && !_isHiding && !_allowClose)
+        {
+            // Content has been arranged by now; re-anchor with the real size instead of the pre-Show estimate.
+            PositionNearTray(new System.Windows.Size(ActualWidth, ActualHeight));
+        }
 
         _isFullyLoaded = true;
     }
@@ -290,7 +295,7 @@ public partial class StatsPopupWindow : Window
         });
     }
 
-    private void PositionNearTray()
+    private void PositionNearTray(System.Windows.Size? arrangedSize = null)
     {
         // Get current mouse position (prefer the click-time anchor to avoid async delay drift)
         var mousePos = _anchorPoint ?? System.Windows.Forms.Control.MousePosition;
@@ -320,13 +325,18 @@ public partial class StatsPopupWindow : Window
         const int trayAreaWidth = 250; // System tray area width (right side)
         const int spacing = 10; // Minimum gap between window and mouse/taskbar
 
-        Width = Math.Min(TrayPopupWidth, Math.Max(1, (workingArea.Width - spacing * 2) / dpiScaleX));
-        MaxHeight = Math.Max(200, (workingArea.Height - spacing * 2) / dpiScaleY);
-        RootBorder.Measure(new System.Windows.Size(Width, MaxHeight));
-        UpdateLayout();
+        // Only the initial (pre-Show) call may touch layout; later calls pass the arranged size
+        // so repositioning never triggers Measure/UpdateLayout and re-enters SizeChanged.
+        if (!arrangedSize.HasValue)
+        {
+            Width = Math.Min(TrayPopupWidth, Math.Max(1, (workingArea.Width - spacing * 2) / dpiScaleX));
+            MaxHeight = Math.Max(200, (workingArea.Height - spacing * 2) / dpiScaleY);
+            RootBorder.Measure(new System.Windows.Size(Width, MaxHeight));
+            UpdateLayout();
+        }
 
-        var windowWidthDip = Width;
-        var windowHeightDip = Math.Min(RootBorder.DesiredSize.Height, MaxHeight);
+        var windowWidthDip = arrangedSize?.Width ?? Width;
+        var windowHeightDip = arrangedSize?.Height ?? Math.Min(RootBorder.DesiredSize.Height, MaxHeight);
 
         var windowWidth = windowWidthDip * dpiScaleX;
         var windowHeight = windowHeightDip * dpiScaleY;
@@ -544,6 +554,17 @@ public partial class StatsPopupWindow : Window
 
     private void OnWindowBoundsChanged(object? sender, SizeChangedEventArgs e)
     {
+        if (!_isWindowMode)
+        {
+            // SizeToContent grows as stats arrive; keep the popup anchored to the tray.
+            if (IsVisible && !_isHiding && !_allowClose)
+            {
+                PositionNearTray(e.NewSize);
+            }
+
+            return;
+        }
+
         OnWindowBoundsChanged(sender, EventArgs.Empty);
     }
 
