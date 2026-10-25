@@ -30,8 +30,10 @@ public class InputMonitorService : IDisposable
     private uint _hookThreadId;
 
     // Hook health watchdog: detects whether Windows has silently removed our hooks.
+    // Each hook keeps its own timestamp so a live device cannot mask a dead one.
     private Timer? _watchdogTimer;
-    private int _lastHookCallbackTick;
+    private int _lastKeyboardHookCallbackTick;
+    private int _lastMouseHookCallbackTick;
     private int _isReinstallingHooks;
     private NativeInterop.POINT _lastCursorPos;
     private const int WatchdogIntervalMs = 3000;
@@ -40,6 +42,13 @@ public class InputMonitorService : IDisposable
     private const int HookThreadStopTimeoutMs = 2000;
     private const int HookReinstallRetryCount = 3;
     private const int HookReinstallRetryDelayMs = 750;
+
+    private const int VkLShift = 0xA0;
+    private const int VkRShift = 0xA1;
+    private const int VkLControl = 0xA2;
+    private const int VkRControl = 0xA3;
+    private const int VkLMenu = 0xA4;
+    private const int VkRMenu = 0xA5;
 
     public event Action<string, string, string>? KeyPressed;
     public event Action<string, string>? LeftMouseClicked;
@@ -60,7 +69,7 @@ public class InputMonitorService : IDisposable
         _mouseProc = MouseHookCallback;
         ResetTransientState();
 
-        _lastHookCallbackTick = Environment.TickCount;
+        ResetHookHealthTimestamps(Environment.TickCount);
         StartHookThread();
 
         _isMonitoring = true;
@@ -69,6 +78,13 @@ public class InputMonitorService : IDisposable
         _watchdogTimer = new Timer(WatchdogCallback, null, WatchdogIntervalMs, WatchdogIntervalMs);
 
         Debug.WriteLine("Input monitoring started successfully (dedicated hook thread)");
+    }
+
+    // Both install paths reset the two timestamps together so a fresh hook is never overdue.
+    private void ResetHookHealthTimestamps(int nowTick)
+    {
+        Volatile.Write(ref _lastKeyboardHookCallbackTick, nowTick);
+        Volatile.Write(ref _lastMouseHookCallbackTick, nowTick);
     }
 
     private void InstallHooks()
@@ -127,7 +143,7 @@ public class InputMonitorService : IDisposable
             _mouseHookId = IntPtr.Zero;
         }
 
-        _lastHookCallbackTick = Environment.TickCount;
+        ResetHookHealthTimestamps(Environment.TickCount);
         StartHookThread();
         ResetTransientState();
         Debug.WriteLine("Watchdog: hooks reinstalled");
@@ -186,36 +202,65 @@ public class InputMonitorService : IDisposable
     {
         if (!_isMonitoring) return;
 
-        NativeInterop.GetCursorPos(out var currentPos);
-        var cursorMoved = currentPos.x != _lastCursorPos.x || currentPos.y != _lastCursorPos.y;
-        _lastCursorPos = currentPos;
-        var keyboardActivity = HasRecentKeyboardActivity();
-
-        if (!cursorMoved && !keyboardActivity) return;
-
-        // The cursor is moving but no hook callback has fired in a while → Windows likely removed the hooks silently.
-        var elapsed = unchecked((uint)(Environment.TickCount - Volatile.Read(ref _lastHookCallbackTick)));
-        if (elapsed > HookDeadThresholdMs)
+        // A failed cursor sample must not read as movement.
+        var cursorMoved = false;
+        if (NativeInterop.GetCursorPos(out var currentPos))
         {
-            if (Interlocked.CompareExchange(ref _isReinstallingHooks, 1, 0) != 0)
-            {
-                return;
-            }
-
-            Debug.WriteLine($"Watchdog: hook appears dead (no callback for {elapsed}ms), reinstalling...");
-            try
-            {
-                RetryHookRecovery("watchdog");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Watchdog: recovery failed after retries. {ex.Message}");
-            }
-            finally
-            {
-                Volatile.Write(ref _isReinstallingHooks, 0);
-            }
+            cursorMoved = currentPos.x != _lastCursorPos.x || currentPos.y != _lastCursorPos.y;
+            _lastCursorPos = currentPos;
         }
+
+        // Probe before sampling the clock, so input arriving during the probe is compared against
+        // a timestamp no older than the probe itself.
+        var keyboardActivity = HasRecentKeyboardActivity();
+        var keyboardTick = Volatile.Read(ref _lastKeyboardHookCallbackTick);
+        var mouseTick = Volatile.Read(ref _lastMouseHookCallbackTick);
+        var nowTick = Environment.TickCount;
+
+        if (!ShouldRecoverHooks(nowTick, cursorMoved, keyboardActivity, keyboardTick, mouseTick))
+        {
+            return;
+        }
+
+        if (Interlocked.CompareExchange(ref _isReinstallingHooks, 1, 0) != 0)
+        {
+            return;
+        }
+
+        Debug.WriteLine("Watchdog: hook appears dead, reinstalling...");
+        try
+        {
+            RetryHookRecovery("watchdog");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Watchdog: recovery failed after retries. {ex.Message}");
+        }
+        finally
+        {
+            Volatile.Write(ref _isReinstallingHooks, 0);
+        }
+    }
+
+    // Each device is judged only against its own evidence and its own timestamp.
+    private static bool ShouldRecoverHooks(
+        int nowTick,
+        bool cursorMoved,
+        bool keyboardActivity,
+        int lastKeyboardTick,
+        int lastMouseTick)
+    {
+        return IsDeviceHookDead(nowTick, lastKeyboardTick, keyboardActivity)
+            || IsDeviceHookDead(nowTick, lastMouseTick, cursorMoved);
+    }
+
+    private static bool IsDeviceHookDead(int nowTick, int lastCallbackTick, bool hasActivityEvidence)
+    {
+        if (!hasActivityEvidence) return false;
+
+        // Unsigned elapsed survives Environment.TickCount's wrap at int.MaxValue.
+        var elapsed = unchecked((uint)(nowTick - lastCallbackTick));
+        return elapsed > HookDeadThresholdMs;
     }
 
     public void StopMonitoring()
@@ -253,7 +298,7 @@ public class InputMonitorService : IDisposable
     {
         if (nCode >= 0)
         {
-            Interlocked.Exchange(ref _lastHookCallbackTick, Environment.TickCount);
+            Interlocked.Exchange(ref _lastKeyboardHookCallbackTick, Environment.TickCount);
 
             var message = (int)wParam;
             var hookStruct = Marshal.PtrToStructure<NativeInterop.KBDLLHOOKSTRUCT>(lParam);
@@ -298,7 +343,7 @@ public class InputMonitorService : IDisposable
     {
         if (nCode >= 0)
         {
-            Interlocked.Exchange(ref _lastHookCallbackTick, Environment.TickCount);
+            Interlocked.Exchange(ref _lastMouseHookCallbackTick, Environment.TickCount);
 
             var message = (int)wParam;
             var hookStruct = Marshal.PtrToStructure<NativeInterop.MSLLHOOKSTRUCT>(lParam);
@@ -525,16 +570,51 @@ public class InputMonitorService : IDisposable
 
     private bool HasRecentKeyboardActivity()
     {
+        // Scan every virtual key each round: an early return would leave later keys' low bits
+        // unread, and GetAsyncKeyState's low bit means "changed since the last poll", so a stale
+        // low bit would then surface on a later round as if the input had just happened.
+        var hasActivity = false;
         for (var vk = 0x08; vk <= 0xFE; vk++)
         {
-            var state = NativeInterop.GetAsyncKeyState(vk);
-            if ((state & 0x0001) != 0 || (state & 0x8000) != 0)
+            if (IsKeyboardActivityEvidence(vk, NativeInterop.GetAsyncKeyState(vk)))
             {
-                return true;
+                hasActivity = true;
             }
         }
 
-        return false;
+        return hasActivity;
+    }
+
+    private bool IsKeyboardActivityEvidence(int vk, short state)
+    {
+        if ((state & 0x0001) != 0) return true;
+        if ((state & 0x8000) == 0) return false;
+
+        return !IsHeldModifier(vk);
+    }
+
+    // A held modifier keeps the high bit set without producing new input, so it is not treated as
+    // evidence once the hook has recorded its key down and not yet its key up. Generic
+    // VK_CONTROL/VK_SHIFT/VK_MENU never match _pressedKeys because the low-level hook reports the
+    // left/right variants, so they are ignored outright.
+    private bool IsHeldModifier(int vk)
+    {
+        if (vk == NativeInterop.VK_CONTROL || vk == NativeInterop.VK_SHIFT || vk == NativeInterop.VK_MENU)
+        {
+            return true;
+        }
+
+        if (vk != VkLControl && vk != VkRControl && vk != VkLShift && vk != VkRShift
+            && vk != VkLMenu && vk != VkRMenu
+            && vk != NativeInterop.VK_LWIN && vk != NativeInterop.VK_RWIN)
+        {
+            return false;
+        }
+
+        lock (_pressedKeys)
+        {
+            return _pressedKeys.Contains(vk);
+        }
     }
 
     private bool TryStopHookThread()
