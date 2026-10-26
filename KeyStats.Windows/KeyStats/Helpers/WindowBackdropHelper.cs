@@ -21,7 +21,7 @@ public static class WindowBackdropHelper
         NativeInterop.TrySetRoundedCorners(handle);
         NativeInterop.TryClearWindowBorder(handle);
 
-        if (PresentationSource.FromVisual(window) is HwndSource hwndSource)
+        if (HwndSource.FromHwnd(handle) is { } hwndSource)
         {
             hwndSource.CompositionTarget.BackgroundColor = Colors.Transparent;
         }
