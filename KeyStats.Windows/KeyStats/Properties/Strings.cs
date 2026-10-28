@@ -22,6 +22,7 @@ public static class Strings
     public static string Error_ImportInvalidFormat => Get(nameof(Error_ImportInvalidFormat));
     public static string Error_ImportUnsupportedVersion => Get(nameof(Error_ImportUnsupportedVersion));
     public static string Error_ImportEmpty => Get(nameof(Error_ImportEmpty));
+    public static string Error_StartupTaskFailed => Get(nameof(Error_StartupTaskFailed));
     public static string Error_ImportDisabledWhileSyncing => Get(nameof(Error_ImportDisabledWhileSyncing));
 
     public static string Notif_ThresholdTitle => Get(nameof(Notif_ThresholdTitle));

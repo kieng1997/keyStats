@@ -211,10 +211,14 @@ public partial class App : System.Windows.Application
             {
                 StartupManager.Instance.SetEnabled(menuItem.IsChecked);
             }
-            catch
+            catch (Exception ex)
             {
-                // Revert checkbox if failed
-                menuItem.IsChecked = !menuItem.IsChecked;
+                // 失败时按实际状态回填，而不是简单反转（可能只有部分入口被清理）。
+                menuItem.IsChecked = StartupManager.Instance.IsEnabled;
+                Console.WriteLine($"Error setting startup: {ex.Message}");
+                MessageBox.Show(KeyStats.Properties.Strings.Error_StartupTaskFailed,
+                                KeyStats.Properties.Strings.Error_AppErrorTitle,
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         };
         menu.Items.Add(startupItem);
