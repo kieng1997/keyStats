@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using KeyStats.Helpers;
 
 namespace KeyStats.Views.Controls;
@@ -38,11 +39,25 @@ public class KeyboardHeatmapControl : FrameworkElement
 
     private const double LayoutInset = 8;
     private const double DeckPadding = 0.35;
+    private const string BrandMarkResourceName = "KeyStats.Resources.Icons.tray-icon.png";
 
     private static readonly HashSet<string> NumberKeyIds = new(Enumerable.Range(0, 10).Select(i => i.ToString(CultureInfo.InvariantCulture)));
     private static readonly IReadOnlyList<KeySpec> Layout = BuildLayout();
     private static readonly Rect LayoutBounds = ComputeLayoutBounds(Layout);
     private static readonly Rect FrameBounds = InflateBounds(LayoutBounds, DeckPadding);
+    private static readonly Rect BrandBandBounds = ComputeBrandBandBounds(Layout);
+
+    // Decoded once from the embedded icon and frozen; never re-read from disk.
+    private static readonly Lazy<BitmapSource?> BrandMarkMask = new(CreateBrandMarkMask, true);
+    private static readonly Lazy<BitmapSource?> BrandMarkLight = new(() => CreateTintedBrandMark(false), true);
+    private static readonly Lazy<BitmapSource?> BrandMarkDark = new(() => CreateTintedBrandMark(true), true);
+
+    // Frozen material assets: one grain tile per theme plus fixed shading overlays, nothing generated
+    // per key or per frame.
+    private static readonly Lazy<DrawingBrush?> GrainLight = new(() => CreateGrainBrush(false), true);
+    private static readonly Lazy<DrawingBrush?> GrainDark = new(() => CreateGrainBrush(true), true);
+    private static readonly Brush DishShadow = CreateLinearBrush(0.09, Colors.Black, 0.0, 0.0, 1.0, 1.0);
+    private static readonly Brush DishLight = CreateLinearBrush(0.10, Colors.White, 1.0, 1.0, 0.0, 0.0);
 
     public static readonly HashSet<string> SupportedKeyIds = new(Layout.Select(item => item.Id), StringComparer.Ordinal);
 
@@ -79,8 +94,6 @@ public class KeyboardHeatmapControl : FrameworkElement
         }
 
         var isDarkMode = ThemeManager.Instance.IsDarkTheme;
-        var defaultTextColor = isDarkMode ? Colors.White : ResolveColor("TextPrimaryBrush", Colors.Black);
-        var textBrush = CreateBrush(defaultTextColor);
 
         DrawDeck(drawingContext, metrics, isDarkMode);
 
@@ -89,11 +102,52 @@ public class KeyboardHeatmapControl : FrameworkElement
             var frame = KeyFrame(key, metrics);
             var count = _keyCounts.TryGetValue(key.Id, out var value) ? value : 0;
             var fillColor = ColorForCount(count, isDarkMode);
+            var legendColor = LegendColorFor(fillColor, isDarkMode);
 
             DrawKeycap(drawingContext, frame, fillColor, metrics.Scale, isDarkMode);
-            DrawKeyLegend(drawingContext, key, frame, metrics.Scale, textBrush, defaultTextColor);
+            DrawKeyLegend(drawingContext, key, frame, metrics.Scale, legendColor);
             DrawCountBadge(drawingContext, count, frame, metrics.Scale, isDarkMode);
         }
+    }
+
+    // Per-cap black or white ink, whichever contrasts more with that cap's final top face. A single
+    // theme colour cannot serve the heat ramp: ink that reads on a pale cap fails on a saturated one.
+    private static Color LegendColorFor(Color fillColor, bool isDarkMode)
+    {
+        var face = KeyFaceColor(fillColor, isDarkMode);
+        var black = Color.FromRgb(0, 0, 0);
+        var white = Color.FromRgb(255, 255, 255);
+        return ContrastRatio(black, face) >= ContrastRatio(white, face) ? black : white;
+    }
+
+    // Must track what DrawKeycap paints under the legend: face gradient plus the dished overlays at
+    // their midpoint.
+    private static Color KeyFaceColor(Color fillColor, bool isDarkMode)
+    {
+        var face = Blend(
+            Shade(fillColor, isDarkMode ? 0.12 : 0.07),
+            isDarkMode ? Shade(fillColor, -0.10) : Shade(fillColor, -0.03),
+            0.5);
+        face = Blend(face, Colors.White, 0.10 * 0.5);
+        return Blend(face, Colors.Black, 0.09 * 0.5);
+    }
+
+    private static double ContrastRatio(Color first, Color second)
+    {
+        var lighter = Math.Max(RelativeLuminance(first), RelativeLuminance(second));
+        var darker = Math.Min(RelativeLuminance(first), RelativeLuminance(second));
+        return (lighter + 0.05) / (darker + 0.05);
+    }
+
+    private static double RelativeLuminance(Color color)
+    {
+        static double Channel(byte value)
+        {
+            var channel = value / 255.0;
+            return channel <= 0.03928 ? channel / 12.92 : Math.Pow((channel + 0.055) / 1.055, 2.4);
+        }
+
+        return 0.2126 * Channel(color.R) + 0.7152 * Channel(color.G) + 0.0722 * Channel(color.B);
     }
 
     private static void DrawDeck(DrawingContext drawingContext, RenderMetrics metrics, bool isDarkMode)
@@ -106,62 +160,256 @@ public class KeyboardHeatmapControl : FrameworkElement
             FrameBounds.Height * metrics.Scale);
         var radius = Math.Max(6, metrics.Scale * 0.34);
 
-        var topBase = Blend(surface, Colors.Black, isDarkMode ? 0.38 : 0.06);
-        var bottomBase = Blend(surface, Colors.Black, isDarkMode ? 0.50 : 0.13);
-        var topColor = Color.FromArgb(170, topBase.R, topBase.G, topBase.B);
-        var bottomColor = Color.FromArgb(185, bottomBase.R, bottomBase.G, bottomBase.B);
+        // Cast shadow thrown down-right by the upper-left key light; the opaque deck shows it only past
+        // the silhouette.
+        var shadowOffset = Math.Max(2, metrics.Scale * 0.09);
+        for (var layer = 3; layer >= 1; layer--)
+        {
+            var spread = shadowOffset * layer * 0.5;
+            var alpha = (byte)Math.Round((isDarkMode ? 54.0 : 26.0) / layer);
+            var shadowRect = new Rect(
+                deckRect.X + spread * 0.35,
+                deckRect.Y + spread * 0.8,
+                deckRect.Width,
+                deckRect.Height);
+            drawingContext.DrawRoundedRectangle(
+                CreateBrush(Color.FromArgb(alpha, 0, 0, 0)),
+                null,
+                shadowRect,
+                radius + spread * 0.3,
+                radius + spread * 0.3);
+        }
+
+        var topBase = Blend(surface, Colors.Black, isDarkMode ? 0.30 : 0.05);
+        var bottomBase = Blend(surface, Colors.Black, isDarkMode ? 0.44 : 0.12);
+        var topColor = Color.FromArgb(255, topBase.R, topBase.G, topBase.B);
+        var bottomColor = Color.FromArgb(255, bottomBase.R, bottomBase.G, bottomBase.B);
         var deckBrush = new LinearGradientBrush(topColor, bottomColor, 90);
         deckBrush.Freeze();
 
+        var deckGeometry = new RectangleGeometry(deckRect, radius, radius);
+        deckGeometry.Freeze();
+        drawingContext.DrawRoundedRectangle(deckBrush, null, deckRect, radius, radius);
+
+        var grain = isDarkMode ? GrainDark.Value : GrainLight.Value;
+        if (grain != null)
+        {
+            drawingContext.PushClip(deckGeometry);
+            drawingContext.DrawRectangle(grain, null, deckRect);
+            drawingContext.Pop();
+        }
+
+        var bevelWidth = Math.Max(1, metrics.Scale * 0.03);
+        var bevelRadius = Math.Max(2, radius - bevelWidth);
+        var bevelGeometry = new RectangleGeometry(new Rect(
+            deckRect.X + bevelWidth,
+            deckRect.Y + bevelWidth,
+            Math.Max(0, deckRect.Width - bevelWidth * 2),
+            Math.Max(0, deckRect.Height - bevelWidth * 2)), bevelRadius, bevelRadius);
+        bevelGeometry.Freeze();
+        var bevelBrush = new LinearGradientBrush(
+            Color.FromArgb(isDarkMode ? (byte)40 : (byte)150, 255, 255, 255),
+            Color.FromArgb(isDarkMode ? (byte)70 : (byte)44, 0, 0, 0),
+            new Point(0, 0),
+            new Point(1, 1));
+        bevelBrush.Freeze();
+        var bevelPen = new Pen(bevelBrush, bevelWidth);
+        bevelPen.Freeze();
+        drawingContext.DrawGeometry(null, bevelPen, bevelGeometry);
+
         var borderColor = isDarkMode
-            ? Color.FromArgb(34, 255, 255, 255)
-            : Color.FromArgb(30, 0, 0, 0);
+            ? Color.FromArgb(46, 255, 255, 255)
+            : Color.FromArgb(38, 0, 0, 0);
         var borderPen = new Pen(CreateBrush(borderColor), Math.Max(0.8, metrics.Scale * 0.02));
         borderPen.Freeze();
+        drawingContext.DrawRoundedRectangle(null, borderPen, deckRect, radius, radius);
 
-        drawingContext.DrawRoundedRectangle(deckBrush, borderPen, deckRect, radius, radius);
+        DrawBrandMark(drawingContext, metrics, isDarkMode);
+    }
 
-        var highlightColor = isDarkMode
-            ? Color.FromArgb(22, 255, 255, 255)
-            : Color.FromArgb(90, 255, 255, 255);
-        var highlightPen = new Pen(CreateBrush(highlightColor), Math.Max(0.8, metrics.Scale * 0.02));
-        highlightPen.Freeze();
-        var highlightY = deckRect.Top + Math.Max(1, metrics.Scale * 0.035);
-        drawingContext.DrawLine(
-            highlightPen,
-            new Point(deckRect.Left + radius, highlightY),
-            new Point(deckRect.Right - radius, highlightY));
+    // Printed into the empty band above the numeric keypad in one flat ink: no plate, border or glow,
+    // so it belongs to the chassis and rides the day-slide animation with it.
+    private static void DrawBrandMark(DrawingContext drawingContext, RenderMetrics metrics, bool isDarkMode)
+    {
+        var mark = isDarkMode ? BrandMarkDark.Value : BrandMarkLight.Value;
+        if (mark == null || BrandBandBounds.IsEmpty)
+        {
+            return;
+        }
+
+        var band = new Rect(
+            metrics.Origin.X + BrandBandBounds.X * metrics.Scale,
+            metrics.Origin.Y + BrandBandBounds.Y * metrics.Scale,
+            BrandBandBounds.Width * metrics.Scale,
+            BrandBandBounds.Height * metrics.Scale);
+        var height = Math.Min(band.Height * 0.86, metrics.Scale * 0.86);
+        var width = height * mark.PixelWidth / mark.PixelHeight;
+        if (height < 6 || band.Width < width)
+        {
+            return;
+        }
+
+        var target = new Rect(
+            band.Left + (band.Width - width) / 2,
+            band.Top + (band.Height - height) / 2,
+            width,
+            height);
+        drawingContext.DrawImage(mark, target);
+    }
+
+    private static BitmapSource? CreateBrandMarkMask()
+    {
+        try
+        {
+            using var stream = typeof(KeyboardHeatmapControl).Assembly.GetManifestResourceStream(BrandMarkResourceName);
+            if (stream == null)
+            {
+                return null;
+            }
+
+            var decoder = new PngBitmapDecoder(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+            var frame = decoder.Frames[0];
+            BitmapSource source = frame.Format == PixelFormats.Bgra32
+                ? frame
+                : new FormatConvertedBitmap(frame, PixelFormats.Bgra32, null, 0);
+            var stride = source.PixelWidth * 4;
+            var pixels = new byte[stride * source.PixelHeight];
+            source.CopyPixels(pixels, stride, 0);
+
+            // The app tile is a purple squircle with white glyph strokes; keep only the strokes so the
+            // mark reads as line art rather than a pasted-on badge.
+            var left = source.PixelWidth;
+            var top = source.PixelHeight;
+            var right = -1;
+            var bottom = -1;
+            for (var offset = 0; offset < pixels.Length; offset += 4)
+            {
+                var coverage = Math.Min(pixels[offset], Math.Min(pixels[offset + 1], pixels[offset + 2])) / 255.0;
+                var stroke = Math.Max(0, Math.Min(1, (coverage - 0.85) / 0.10));
+                var ink = pixels[offset + 3] / 255.0 * stroke;
+                pixels[offset] = 255;
+                pixels[offset + 1] = 255;
+                pixels[offset + 2] = 255;
+                pixels[offset + 3] = (byte)Math.Round(ink * 255);
+
+                if (ink < 0.25) continue;
+                var pixelIndex = offset / 4;
+                var x = pixelIndex % source.PixelWidth;
+                var y = pixelIndex / source.PixelWidth;
+                if (x < left) left = x;
+                if (x > right) right = x;
+                if (y < top) top = y;
+                if (y > bottom) bottom = y;
+            }
+
+            if (right < left || bottom < top)
+            {
+                return null;
+            }
+
+            // Trimmed to the strokes; the caller sizes by height only.
+            var cropped = new CroppedBitmap(
+                BitmapSource.Create(source.PixelWidth, source.PixelHeight, 96, 96, PixelFormats.Bgra32, null, pixels, stride),
+                new Int32Rect(left, top, right - left + 1, bottom - top + 1));
+            cropped.Freeze();
+            return cropped;
+        }
+        catch
+        {
+            // A missing icon only drops the mark.
+            return null;
+        }
+    }
+
+    private static BitmapSource? CreateTintedBrandMark(bool isDarkMode)
+    {
+        var mask = BrandMarkMask.Value;
+        if (mask == null)
+        {
+            return null;
+        }
+
+        var surface = ResolveColor("SurfaceBrush", isDarkMode ? Color.FromRgb(32, 32, 32) : Color.FromRgb(250, 250, 250));
+        var ink = Blend(
+            ResolveColor("TextSecondaryBrush", isDarkMode ? Color.FromRgb(197, 197, 197) : Color.FromRgb(74, 74, 74)),
+            surface,
+            isDarkMode ? 0.12 : 0.18);
+        const double inkOpacity = 0.62;
+
+        var stride = mask.PixelWidth * 4;
+        var pixels = new byte[stride * mask.PixelHeight];
+        mask.CopyPixels(pixels, stride, 0);
+        for (var offset = 0; offset < pixels.Length; offset += 4)
+        {
+            pixels[offset] = ink.B;
+            pixels[offset + 1] = ink.G;
+            pixels[offset + 2] = ink.R;
+            pixels[offset + 3] = (byte)Math.Round(pixels[offset + 3] * inkOpacity);
+        }
+
+        var tinted = BitmapSource.Create(mask.PixelWidth, mask.PixelHeight, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
+        tinted.Freeze();
+        return tinted;
     }
 
     private static void DrawKeycap(DrawingContext drawingContext, Rect frame, Color fillColor, double scale, bool isDarkMode)
     {
         var radius = Math.Max(3.5, scale * 0.13);
         var depth = Math.Max(1.2, scale * 0.055);
+        var inset = Math.Max(1, scale * 0.045);
+
+        var shadowRect = new Rect(frame.X + inset, frame.Y + depth + inset, frame.Width, frame.Height);
+        drawingContext.DrawRoundedRectangle(
+            CreateBrush(Color.FromArgb(isDarkMode ? (byte)120 : (byte)52, 0, 0, 0)),
+            null,
+            shadowRect,
+            radius,
+            radius);
 
         var sideRect = new Rect(frame.X, frame.Y + depth, frame.Width, frame.Height);
         drawingContext.DrawRoundedRectangle(
-            CreateBrush(Shade(fillColor, isDarkMode ? -0.42 : -0.26)),
+            CreateBrush(Shade(fillColor, isDarkMode ? -0.46 : -0.30)),
             null,
             sideRect,
             radius,
             radius);
 
         var faceBrush = new LinearGradientBrush(
-            Shade(fillColor, isDarkMode ? 0.10 : 0.06),
-            isDarkMode ? Shade(fillColor, -0.08) : fillColor,
+            Shade(fillColor, isDarkMode ? 0.12 : 0.07),
+            isDarkMode ? Shade(fillColor, -0.10) : Shade(fillColor, -0.03),
             90);
         faceBrush.Freeze();
 
         var borderColor = isDarkMode
-            ? Color.FromArgb(38, 255, 255, 255)
-            : Color.FromArgb(30, 0, 0, 0);
+            ? Color.FromArgb(44, 255, 255, 255)
+            : Color.FromArgb(36, 0, 0, 0);
         var borderPen = new Pen(CreateBrush(borderColor), Math.Max(0.7, scale * 0.018));
         borderPen.Freeze();
         drawingContext.DrawRoundedRectangle(faceBrush, borderPen, frame, radius, radius);
 
+        // Dished top face: near edge darkened, far edge lifted, both kept faint so the heat colour stays
+        // the dominant surface.
+        var faceGeometry = new RectangleGeometry(frame, radius, radius);
+        faceGeometry.Freeze();
+        var dishInset = Math.Max(1, scale * 0.06);
+        var dishRect = new Rect(
+            frame.X + dishInset,
+            frame.Y + dishInset,
+            Math.Max(0, frame.Width - dishInset * 2),
+            Math.Max(0, frame.Height - dishInset * 2));
+        drawingContext.PushClip(faceGeometry);
+        var grain = isDarkMode ? GrainDark.Value : GrainLight.Value;
+        if (grain != null)
+        {
+            drawingContext.DrawRectangle(grain, null, frame);
+        }
+        drawingContext.DrawRectangle(DishLight, null, dishRect);
+        drawingContext.DrawRectangle(DishShadow, null, dishRect);
+        drawingContext.Pop();
+
         var highlightColor = isDarkMode
-            ? Color.FromArgb(26, 255, 255, 255)
-            : Color.FromArgb(120, 255, 255, 255);
+            ? Color.FromArgb(40, 255, 255, 255)
+            : Color.FromArgb(150, 255, 255, 255);
         var highlightPen = new Pen(CreateBrush(highlightColor), Math.Max(0.8, scale * 0.02));
         highlightPen.Freeze();
         var highlightInset = radius * 0.85;
@@ -170,6 +418,55 @@ public class KeyboardHeatmapControl : FrameworkElement
             highlightPen,
             new Point(frame.Left + highlightInset, highlightY),
             new Point(frame.Right - highlightInset, highlightY));
+    }
+
+    private static DrawingBrush? CreateGrainBrush(bool isDarkMode)
+    {
+        // Deterministic 64x64 tile drawn 1:1 in device pixels, so the grain stays fine and identical on
+        // every frame.
+        const int tileSize = 64;
+        var stride = tileSize * 4;
+        var pixels = new byte[stride * tileSize];
+        var random = new Random(isDarkMode ? 20260128 : 20260127);
+        var baseInk = isDarkMode ? 255 : 0;
+
+        for (var offset = 0; offset < pixels.Length; offset += 4)
+        {
+            // Dark grains on the light chassis, light grains on the dark one; alphas stay low enough to
+            // keep heat colours and text contrast intact.
+            var noise = random.NextDouble();
+            var alpha = noise < 0.10 ? 18.0 : noise < 0.45 ? 9.0 : 4.0;
+            pixels[offset] = (byte)baseInk;
+            pixels[offset + 1] = (byte)baseInk;
+            pixels[offset + 2] = (byte)baseInk;
+            pixels[offset + 3] = (byte)Math.Round(alpha);
+        }
+
+        var tile = BitmapSource.Create(tileSize, tileSize, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
+        tile.Freeze();
+
+        var brush = new DrawingBrush(new ImageDrawing(tile, new Rect(0, 0, tileSize, tileSize)))
+        {
+            TileMode = TileMode.Tile,
+            Viewport = new Rect(0, 0, tileSize, tileSize),
+            ViewportUnits = BrushMappingMode.Absolute,
+            Viewbox = new Rect(0, 0, tileSize, tileSize),
+            ViewboxUnits = BrushMappingMode.Absolute,
+            Stretch = Stretch.None
+        };
+        brush.Freeze();
+        return brush;
+    }
+
+    private static Brush CreateLinearBrush(double alpha, Color color, double x1, double y1, double x2, double y2)
+    {
+        var brush = new LinearGradientBrush(
+            Color.FromArgb((byte)Math.Round(alpha * 255), color.R, color.G, color.B),
+            Color.FromArgb(0, color.R, color.G, color.B),
+            new Point(x1, y1),
+            new Point(x2, y2));
+        brush.Freeze();
+        return brush;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -225,7 +522,7 @@ public class KeyboardHeatmapControl : FrameworkElement
             key.FrameUnits.Height * metrics.Scale);
     }
 
-    private void DrawKeyLegend(DrawingContext drawingContext, KeySpec key, Rect frame, double scale, Brush textBrush, Color textColor)
+    private void DrawKeyLegend(DrawingContext drawingContext, KeySpec key, Rect frame, double scale, Color textColor)
     {
         if (string.IsNullOrEmpty(key.Label))
         {
@@ -239,7 +536,7 @@ public class KeyboardHeatmapControl : FrameworkElement
         }
 
         var fontSize = Math.Max(9, Math.Min(13, scale * 0.28));
-        var text = CreateText(key.Label, fontSize, FontWeights.Medium, textBrush, "Segoe UI");
+        var text = CreateText(key.Label, fontSize, FontWeights.Medium, CreateBrush(textColor), "Segoe UI");
 
         var horizontalInset = Math.Max(4, scale * 0.16);
         var verticalInset = Math.Max(3, scale * 0.14);
@@ -261,15 +558,10 @@ public class KeyboardHeatmapControl : FrameworkElement
         var upper = parts[0];
         var lower = parts[1];
 
-        var upperColor = Color.FromArgb(
-            (byte)Math.Round(255 * 0.84),
-            textColor.R,
-            textColor.G,
-            textColor.B);
-        var upperBrush = CreateBrush(upperColor);
+        var upperBrush = CreateBrush(textColor);
         var lowerBrush = CreateBrush(textColor);
 
-        var upperSize = Math.Max(8, Math.Min(11, scale * 0.23));
+        var upperSize = Math.Max(9, Math.Min(11, scale * 0.23));
         var lowerSize = Math.Max(9.5, Math.Min(13, scale * 0.28));
         var upperText = CreateText(upper, upperSize, FontWeights.Regular, upperBrush, "Segoe UI");
         var lowerText = CreateText(lower, lowerSize, FontWeights.Medium, lowerBrush, "Segoe UI");
@@ -485,6 +777,28 @@ public class KeyboardHeatmapControl : FrameworkElement
             fontSize,
             brush,
             VisualTreeHelper.GetDpi(this).PixelsPerDip);
+    }
+
+    // Empty band above the numeric keypad, derived from the layout rather than hardcoded: the numpad's
+    // columns from the top of the key field down to its first row.
+    private static Rect ComputeBrandBandBounds(IReadOnlyList<KeySpec> keys)
+    {
+        var numpadKeys = keys.Where(key => key.Id.StartsWith("Num", StringComparison.Ordinal)).ToList();
+        if (numpadKeys.Count == 0)
+        {
+            return Rect.Empty;
+        }
+
+        var left = numpadKeys.Min(key => key.FrameUnits.Left);
+        var right = numpadKeys.Max(key => key.FrameUnits.Right);
+        var top = numpadKeys.Min(key => key.FrameUnits.Top);
+        var bandHeight = top - LayoutBounds.Top;
+        if (bandHeight <= 0 || right <= left)
+        {
+            return Rect.Empty;
+        }
+
+        return new Rect(left, LayoutBounds.Top, right - left, bandHeight);
     }
 
     private static Rect ComputeLayoutBounds(IReadOnlyList<KeySpec> keys)
