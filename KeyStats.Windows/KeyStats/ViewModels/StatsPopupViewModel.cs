@@ -402,7 +402,17 @@ public class StatsPopupViewModel : ViewModelBase
         if (isFull)
         {
             result.KeyBreakdown = manager.GetKeyPressBreakdownSorted();
-            result.Apps = manager.GetAppStatsSorted(int.MaxValue);
+            // Resolving an icon touches the file system, the registry and the process list, so it runs
+            // here on the refresh thread instead of during the UI-thread apply. Number formatting stays
+            // on the UI thread because it follows the UI culture and the current settings.
+            var apps = manager.GetAppStatsSorted(int.MaxValue);
+            var appRows = new List<(AppStats App, ImageSource? Icon)>(apps.Count);
+            foreach (var app in apps)
+            {
+                appRows.Add((app, AppIconHelper.GetAppIcon(app.AppName, app.DisplayName)));
+            }
+
+            result.AppRows = appRows;
         }
 
         return result;
@@ -424,7 +434,7 @@ public class StatsPopupViewModel : ViewModelBase
         if (result.IsFull)
         {
             ApplyKeyBreakdown(result.KeyBreakdown!);
-            ApplyAppStats(result.Apps!);
+            ApplyAppStats(result.AppRows!);
             Interlocked.Exchange(ref _fullAppliedStamp, result.FullStamp);
         }
     }
@@ -488,20 +498,20 @@ public class StatsPopupViewModel : ViewModelBase
         }
     }
 
-    private void ApplyAppStats(List<AppStats> sortedApps)
+    private void ApplyAppStats(List<(AppStats App, ImageSource? Icon)> rows)
     {
         var manager = StatsManager.Instance;
 
         AppStatsItems.Clear();
 
-        foreach (var app in sortedApps)
+        foreach (var (app, icon) in rows)
         {
             AppStatsItems.Add(new AppStatsItem
             {
                 Name = app.DisplayName,
                 KeyPresses = manager.FormatNumber(app.KeyPresses),
                 Clicks = manager.FormatNumber(app.TotalClicks),
-                Icon = AppIconHelper.GetAppIcon(app.AppName, app.DisplayName)
+                Icon = icon
             });
         }
     }
@@ -622,6 +632,6 @@ public class StatsPopupViewModel : ViewModelBase
         ) MouseTotals { get; set; }
 
         public List<(string Key, int Count)>? KeyBreakdown { get; set; }
-        public List<AppStats>? Apps { get; set; }
+        public List<(AppStats App, ImageSource? Icon)>? AppRows { get; set; }
     }
 }
