@@ -465,7 +465,7 @@ namespace KeyStats.Views
         // digit, by design, so there is no upper glyph to measure.
         private static readonly HashSet<string> DoubleLineKeyIds = new(StringComparer.Ordinal)
         {
-            "`", "-", "=", "[", "]", "\\", ";", "'", ",", ".", "/", "PrintScreen", "ScrollLock", "NumLock"
+            "`", "-", "=", "[", "]", "\\", ";", "'", ",", ".", "/", "NumLock"
         };
 
         // Every key name must clear 4.5:1 against the cap face it is printed on, across the whole heat

@@ -942,8 +942,8 @@ public class KeyboardHeatmapControl : FrameworkElement
         var yNavTop = y1;
         var yNavBottom = y1 + 1.0 + navRowGap;
 
-        items.Add(new KeySpec("PrintScreen", "prt\nsc", new Rect(navStartX, yFunction, navKeyWidth, 1.0)));
-        items.Add(new KeySpec("ScrollLock", "scroll\nlock", new Rect(navStartX + navStepX, yFunction, navKeyWidth, 1.0)));
+        items.Add(new KeySpec("PrintScreen", "print", new Rect(navStartX, yFunction, navKeyWidth, 1.0)));
+        items.Add(new KeySpec("ScrollLock", "scroll", new Rect(navStartX + navStepX, yFunction, navKeyWidth, 1.0)));
         items.Add(new KeySpec("Pause", "pause", new Rect(navStartX + navStepX * 2, yFunction, navKeyWidth, 1.0)));
 
         items.Add(new KeySpec("Insert", "ins", new Rect(navStartX, yNavTop, navKeyWidth, 1.0)));
