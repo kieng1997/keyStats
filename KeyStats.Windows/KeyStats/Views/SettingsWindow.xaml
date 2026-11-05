@@ -314,6 +314,7 @@
                 <ComboBox Grid.Column="1"
                           x:Name="LanguageComboBox"
                           MinWidth="140"
+                          VerticalAlignment="Center"
                           SelectionChanged="LanguageComboBox_SelectionChanged"
                           Loaded="LanguageComboBox_Loaded">
                     <ComboBoxItem Content="{x:Static p:Strings.Settings_Language_System}" Tag="system"/>
