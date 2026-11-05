@@ -74,11 +74,11 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="12"
                                                Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center"/>
-                                    <StackPanel Margin="3,0,0,0">
+                                    <StackPanel Orientation="Horizontal" Margin="3,0,0,0" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding DataContext.PeakKPS, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                   FontSize="9" LineHeight="12" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                                   FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                         <TextBlock Text="{Binding DataContext.PeakCPS, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                   FontSize="9" LineHeight="12" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                                   Margin="8,0,0,0" FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
