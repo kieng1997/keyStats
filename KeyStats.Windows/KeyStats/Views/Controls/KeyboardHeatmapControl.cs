@@ -828,13 +828,10 @@ public class KeyboardHeatmapControl : FrameworkElement
         const double keyGap = 0.15;
         const double rowGap = keyGap;
         const double rowStep = 1.0 + rowGap;
-        // ANSI 104 shape: Esc matches the `~` cap, the function row is split into F1-F4 / F5-F8 / F9-F12
-        // with a wider break between groups, and the whole function row sits about half a cap above the
-        // number row.
+        // ANSI 104 shape: every cap in the function row is a full 1u, exactly like Esc.
         const double escWidth = 1.0;
-        const double escToFunctionGap = 0.55;
-        const double functionGroupGap = 0.45;
-        const double functionRowGap = 0.55;
+        const double functionKeyWidth = 1.0;
+        const double functionRowGap = 0.30;
         var backspaceWidth = 2.38 - keyGap;
         var backslashWidth = 1.93 - keyGap;
         var rightShiftWidth = 2.93 + keyGap;
@@ -856,26 +853,30 @@ public class KeyboardHeatmapControl : FrameworkElement
         var keyboardRightEdge = numberRowWidths.Sum() + (numberRowWidths.Length - 1) * keyGap;
 
         var yFunction = 0.0;
-        var xFunction = 0.0;
-        // Reverse-solve the cap width so the split function row still lands exactly on the main block's
-        // right edge: 9 in-group gaps, 2 group breaks, plus the Esc-to-F1 gap.
-        const int functionGroupCount = 3;
-        var functionGroupBreaks = functionGroupCount - 1;
-        var functionGapTotal = (functionKeys.Length - functionGroupBreaks - 1) * keyGap
-            + functionGroupBreaks * functionGroupGap;
-        var functionKeyWidth = (keyboardRightEdge - escWidth - escToFunctionGap - functionGapTotal) / functionKeys.Length;
+        items.Add(new KeySpec("Esc", "esc", new Rect(0.0, yFunction, escWidth, 1.0)));
 
-        items.Add(new KeySpec("Esc", "esc", new Rect(xFunction, yFunction, escWidth, 1.0)));
-        xFunction += escWidth + escToFunctionGap;
-        for (var index = 0; index < functionKeys.Length; index++)
+        // Function clusters sit over the number row the way a real board does: F1-F4 over "2".."5",
+        // F5-F8 from the middle of "6" to the middle of "0", F9-F12 from "-" to the right edge of
+        // Backspace. Every cap is 1u, so a cluster narrower than its span is centred inside it.
+        var numberStep = 1.0 + keyGap;
+        var functionClusterWidth = 4 * functionKeyWidth + 3 * keyGap;
+        var functionClusters = new (double Left, double Right)[]
         {
-            if (index > 0 && index % (functionKeys.Length / functionGroupCount) == 0)
-            {
-                xFunction += functionGroupGap - keyGap;
-            }
+            (2 * numberStep, 6 * numberStep - keyGap),
+            (6 * numberStep + 0.5, 10 * numberStep + 0.5),
+            (11 * numberStep, keyboardRightEdge)
+        };
 
-            items.Add(new KeySpec(functionKeys[index], functionKeys[index], new Rect(xFunction, yFunction, functionKeyWidth, 1.0)));
-            xFunction += functionKeyWidth + keyGap;
+        for (var cluster = 0; cluster < functionClusters.Length; cluster++)
+        {
+            var (left, right) = functionClusters[cluster];
+            var x = left + Math.Max(0, (right - left - functionClusterWidth) / 2);
+            for (var offset = 0; offset < 4; offset++)
+            {
+                var id = functionKeys[cluster * 4 + offset];
+                items.Add(new KeySpec(id, id, new Rect(x, yFunction, functionKeyWidth, 1.0)));
+                x += functionKeyWidth + keyGap;
+            }
         }
 
         var y1 = 1.0 + functionRowGap;
