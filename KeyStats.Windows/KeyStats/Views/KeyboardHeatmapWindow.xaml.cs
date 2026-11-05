@@ -457,9 +457,11 @@ public partial class KeyboardHeatmapWindow : Window
         var isDaily = _selectedRange == StatsManager.KeyboardHeatmapRange.Today;
         var today = DateTime.Today;
         AppFilterPanel.Visibility = Visibility.Visible;
-        PrevDayButton.Visibility = isDaily ? Visibility.Visible : Visibility.Collapsed;
-        NextDayButton.Visibility = isDaily ? Visibility.Visible : Visibility.Collapsed;
-        DatePickerButton.Visibility = isDaily ? Visibility.Visible : Visibility.Collapsed;
+        // Hidden rather than Collapsed: the day-navigation row keeps its height in the weekly/monthly/all
+        // ranges, so the keyboard below it does not jump up when the range changes.
+        PrevDayButton.Visibility = isDaily ? Visibility.Visible : Visibility.Hidden;
+        NextDayButton.Visibility = isDaily ? Visibility.Visible : Visibility.Hidden;
+        DatePickerButton.Visibility = isDaily ? Visibility.Visible : Visibility.Hidden;
         BackToTodayButton.Visibility = isDaily && _selectedDate != today
             ? Visibility.Visible
             : Visibility.Collapsed;
