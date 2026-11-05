@@ -17,135 +17,137 @@ namespace KeyStats.Views
     internal static class KeyboardHeatmapRenderingSmokeTest
     {
         // Chassis band above the numeric keypad, as fractions of the deck rect. Derived from the 104-key
-        // layout contract: the numpad occupies x=21.73u..26.18u, the key field is 26.18u x 6.75u and the
-        // deck is inflated by 0.35u, so the empty band above the numpad is 4.45u x 1.0u.
+        // layout contract: the numpad occupies x=21.73u..26.18u and starts at y=1.55u, the key field is
+        // 26.18u x 7.15u and the deck is inflated by 0.35u, so the empty band above the numpad is
+        // 4.45u x 1.55u (x 21.73..26.18, y 0..1.55) and the deck is 26.88u x 7.85u.
         private const double BrandBandLeft = 0.8214;
         private const double BrandBandRight = 0.9869;
-        private const double BrandBandTop = 0.0470;
-        private const double BrandBandBottom = 0.1812;
+        private const double BrandBandTop = 0.0446;
+        private const double BrandBandBottom = 0.2420;
 
         // Bare chassis strip between the main key field (right edge 17.18u) and the navigation cluster
-        // (left edge 17.73u), in the frozen 26.18u x 6.75u key-field contract. Inset so antialiased key
-        // borders cannot be mistaken for grain.
+        // (left edge 17.73u), in the frozen 26.18u x 7.15u key-field contract. It runs from the number row
+        // down to the bottom of the key field. Inset so antialiased key borders cannot be mistaken for
+        // grain.
         private const double ChassisStripLeft = 17.31;
         private const double ChassisStripRight = 17.60;
-        private const double ChassisStripTop = 1.15;
-        private const double ChassisStripBottom = 6.75;
+        private const double ChassisStripTop = 1.55;
+        private const double ChassisStripBottom = 7.15;
 
         // Space bar frame in the same contract; its single-line legend sits in the lower-right corner.
         private const double SpaceLeft = 4.40;
-        private const double SpaceTop = 5.75;
+        private const double SpaceTop = 6.15;
         private const double SpaceWidth = 7.73;
         private const double SpaceHeight = 1.0;
 
-        // Every key frame of the ANSI 104-key layout in the 26.18u x 6.75u key-field contract, copied
+        // Every key frame of the ANSI 104-key layout in the 26.18u x 7.15u key-field contract, copied
         // here so the test never reaches into the control's private layout. Main checks it against
         // SupportedKeyIds so a layout change cannot silently invalidate the sampling.
         private static readonly (string Id, double X, double Y, double Width, double Height)[] KeyFrames =
         {
-            new(@"Esc", 0.00, 0.00, 1.450, 1.000),
-            new(@"F1", 1.60, 0.00, 1.161, 1.000),
-            new(@"F2", 2.91, 0.00, 1.161, 1.000),
-            new(@"F3", 4.22, 0.00, 1.161, 1.000),
-            new(@"F4", 5.53, 0.00, 1.161, 1.000),
-            new(@"F5", 6.84, 0.00, 1.161, 1.000),
-            new(@"F6", 8.15, 0.00, 1.161, 1.000),
-            new(@"F7", 9.46, 0.00, 1.161, 1.000),
-            new(@"F8", 10.78, 0.00, 1.161, 1.000),
-            new(@"F9", 12.09, 0.00, 1.161, 1.000),
-            new(@"F10", 13.40, 0.00, 1.161, 1.000),
-            new(@"F11", 14.71, 0.00, 1.161, 1.000),
-            new(@"F12", 16.02, 0.00, 1.161, 1.000),
-            new(@"`", 0.00, 1.15, 1.000, 1.000),
-            new(@"1", 1.15, 1.15, 1.000, 1.000),
-            new(@"2", 2.30, 1.15, 1.000, 1.000),
-            new(@"3", 3.45, 1.15, 1.000, 1.000),
-            new(@"4", 4.60, 1.15, 1.000, 1.000),
-            new(@"5", 5.75, 1.15, 1.000, 1.000),
-            new(@"6", 6.90, 1.15, 1.000, 1.000),
-            new(@"7", 8.05, 1.15, 1.000, 1.000),
-            new(@"8", 9.20, 1.15, 1.000, 1.000),
-            new(@"9", 10.35, 1.15, 1.000, 1.000),
-            new(@"0", 11.50, 1.15, 1.000, 1.000),
-            new(@"-", 12.65, 1.15, 1.000, 1.000),
-            new(@"=", 13.80, 1.15, 1.000, 1.000),
-            new(@"Backspace", 14.95, 1.15, 2.230, 1.000),
-            new(@"Tab", 0.00, 2.30, 1.450, 1.000),
-            new(@"Q", 1.60, 2.30, 1.000, 1.000),
-            new(@"W", 2.75, 2.30, 1.000, 1.000),
-            new(@"E", 3.90, 2.30, 1.000, 1.000),
-            new(@"R", 5.05, 2.30, 1.000, 1.000),
-            new(@"T", 6.20, 2.30, 1.000, 1.000),
-            new(@"Y", 7.35, 2.30, 1.000, 1.000),
-            new(@"U", 8.50, 2.30, 1.000, 1.000),
-            new(@"I", 9.65, 2.30, 1.000, 1.000),
-            new(@"O", 10.80, 2.30, 1.000, 1.000),
-            new(@"P", 11.95, 2.30, 1.000, 1.000),
-            new(@"[", 13.10, 2.30, 1.000, 1.000),
-            new(@"]", 14.25, 2.30, 1.000, 1.000),
-            new(@"\", 15.40, 2.30, 1.780, 1.000),
-            new(@"CapsLock", 0.00, 3.45, 1.800, 1.000),
-            new(@"A", 1.95, 3.45, 1.000, 1.000),
-            new(@"S", 3.10, 3.45, 1.000, 1.000),
-            new(@"D", 4.25, 3.45, 1.000, 1.000),
-            new(@"F", 5.40, 3.45, 1.000, 1.000),
-            new(@"G", 6.55, 3.45, 1.000, 1.000),
-            new(@"H", 7.70, 3.45, 1.000, 1.000),
-            new(@"J", 8.85, 3.45, 1.000, 1.000),
-            new(@"K", 10.00, 3.45, 1.000, 1.000),
-            new(@"L", 11.15, 3.45, 1.000, 1.000),
-            new(@";", 12.30, 3.45, 1.000, 1.000),
-            new(@"'", 13.45, 3.45, 1.000, 1.000),
-            new(@"Return", 14.60, 3.45, 2.580, 1.000),
-            new(@"Shift", 0.00, 4.60, 2.450, 1.000),
-            new(@"Z", 2.60, 4.60, 1.000, 1.000),
-            new(@"X", 3.75, 4.60, 1.000, 1.000),
-            new(@"C", 4.90, 4.60, 1.000, 1.000),
-            new(@"V", 6.05, 4.60, 1.000, 1.000),
-            new(@"B", 7.20, 4.60, 1.000, 1.000),
-            new(@"N", 8.35, 4.60, 1.000, 1.000),
-            new(@"M", 9.50, 4.60, 1.000, 1.000),
-            new(@",", 10.65, 4.60, 1.000, 1.000),
-            new(@".", 11.80, 4.60, 1.000, 1.000),
-            new(@"/", 12.95, 4.60, 1.000, 1.000),
-            new(@"Shift", 14.10, 4.60, 3.080, 1.000),
-            new(@"LCtrl", 0.00, 5.75, 1.350, 1.000),
-            new(@"LWin", 1.50, 5.75, 1.300, 1.000),
-            new(@"LAlt", 2.95, 5.75, 1.300, 1.000),
-            new(@"Space", 4.40, 5.75, 7.730, 1.000),
-            new(@"RAlt", 12.28, 5.75, 1.300, 1.000),
-            new(@"RWin", 13.73, 5.75, 1.300, 1.000),
-            new(@"RCtrl", 15.18, 5.75, 2.000, 1.000),
-            new(@"PrintScreen", 17.73, 0.00, 1.000, 1.000),
-            new(@"ScrollLock", 18.88, 0.00, 1.000, 1.000),
-            new(@"Pause", 20.03, 0.00, 1.000, 1.000),
-            new(@"Insert", 17.73, 1.15, 1.000, 1.000),
-            new(@"Home", 18.88, 1.15, 1.000, 1.000),
-            new(@"PageUp", 20.03, 1.15, 1.000, 1.000),
-            new(@"Delete", 17.73, 2.30, 1.000, 1.000),
-            new(@"End", 18.88, 2.30, 1.000, 1.000),
-            new(@"PageDown", 20.03, 2.30, 1.000, 1.000),
-            new(@"Up", 18.88, 4.60, 1.000, 1.000),
-            new(@"Left", 17.73, 5.75, 1.000, 1.000),
-            new(@"Down", 18.88, 5.75, 1.000, 1.000),
-            new(@"Right", 20.03, 5.75, 1.000, 1.000),
-            new(@"NumLock", 21.73, 1.15, 1.000, 1.000),
-            new(@"Num/", 22.88, 1.15, 1.000, 1.000),
-            new(@"Num*", 24.03, 1.15, 1.000, 1.000),
-            new(@"Num-", 25.18, 1.15, 1.000, 1.000),
-            new(@"Num7", 21.73, 2.30, 1.000, 1.000),
-            new(@"Num8", 22.88, 2.30, 1.000, 1.000),
-            new(@"Num9", 24.03, 2.30, 1.000, 1.000),
-            new(@"Num+", 25.18, 2.30, 1.000, 2.150),
-            new(@"Num4", 21.73, 3.45, 1.000, 1.000),
-            new(@"Num5", 22.88, 3.45, 1.000, 1.000),
-            new(@"Num6", 24.03, 3.45, 1.000, 1.000),
-            new(@"Num1", 21.73, 4.60, 1.000, 1.000),
-            new(@"Num2", 22.88, 4.60, 1.000, 1.000),
-            new(@"Num3", 24.03, 4.60, 1.000, 1.000),
-            new(@"NumEnter", 25.18, 4.60, 1.000, 2.150),
-            new(@"Num0", 21.73, 5.75, 2.150, 1.000),
-            new(@"Num.", 24.03, 5.75, 1.000, 1.000),
+            new(@"Esc", 0.000, 0.000, 1.000, 1.000),
+            new(@"F1", 1.550, 0.000, 1.115, 1.000),
+            new(@"F2", 2.815, 0.000, 1.115, 1.000),
+            new(@"F3", 4.080, 0.000, 1.115, 1.000),
+            new(@"F4", 5.345, 0.000, 1.115, 1.000),
+            new(@"F5", 6.910, 0.000, 1.115, 1.000),
+            new(@"F6", 8.175, 0.000, 1.115, 1.000),
+            new(@"F7", 9.440, 0.000, 1.115, 1.000),
+            new(@"F8", 10.705, 0.000, 1.115, 1.000),
+            new(@"F9", 12.270, 0.000, 1.115, 1.000),
+            new(@"F10", 13.535, 0.000, 1.115, 1.000),
+            new(@"F11", 14.800, 0.000, 1.115, 1.000),
+            new(@"F12", 16.065, 0.000, 1.115, 1.000),
+            new(@"`", 0.000, 1.550, 1.000, 1.000),
+            new(@"1", 1.150, 1.550, 1.000, 1.000),
+            new(@"2", 2.300, 1.550, 1.000, 1.000),
+            new(@"3", 3.450, 1.550, 1.000, 1.000),
+            new(@"4", 4.600, 1.550, 1.000, 1.000),
+            new(@"5", 5.750, 1.550, 1.000, 1.000),
+            new(@"6", 6.900, 1.550, 1.000, 1.000),
+            new(@"7", 8.050, 1.550, 1.000, 1.000),
+            new(@"8", 9.200, 1.550, 1.000, 1.000),
+            new(@"9", 10.350, 1.550, 1.000, 1.000),
+            new(@"0", 11.500, 1.550, 1.000, 1.000),
+            new(@"-", 12.650, 1.550, 1.000, 1.000),
+            new(@"=", 13.800, 1.550, 1.000, 1.000),
+            new(@"Backspace", 14.950, 1.550, 2.230, 1.000),
+            new(@"Tab", 0.000, 2.700, 1.450, 1.000),
+            new(@"Q", 1.600, 2.700, 1.000, 1.000),
+            new(@"W", 2.750, 2.700, 1.000, 1.000),
+            new(@"E", 3.900, 2.700, 1.000, 1.000),
+            new(@"R", 5.050, 2.700, 1.000, 1.000),
+            new(@"T", 6.200, 2.700, 1.000, 1.000),
+            new(@"Y", 7.350, 2.700, 1.000, 1.000),
+            new(@"U", 8.500, 2.700, 1.000, 1.000),
+            new(@"I", 9.650, 2.700, 1.000, 1.000),
+            new(@"O", 10.800, 2.700, 1.000, 1.000),
+            new(@"P", 11.950, 2.700, 1.000, 1.000),
+            new(@"[", 13.100, 2.700, 1.000, 1.000),
+            new(@"]", 14.250, 2.700, 1.000, 1.000),
+            new(@"\", 15.400, 2.700, 1.780, 1.000),
+            new(@"CapsLock", 0.000, 3.850, 1.800, 1.000),
+            new(@"A", 1.950, 3.850, 1.000, 1.000),
+            new(@"S", 3.100, 3.850, 1.000, 1.000),
+            new(@"D", 4.250, 3.850, 1.000, 1.000),
+            new(@"F", 5.400, 3.850, 1.000, 1.000),
+            new(@"G", 6.550, 3.850, 1.000, 1.000),
+            new(@"H", 7.700, 3.850, 1.000, 1.000),
+            new(@"J", 8.850, 3.850, 1.000, 1.000),
+            new(@"K", 10.000, 3.850, 1.000, 1.000),
+            new(@"L", 11.150, 3.850, 1.000, 1.000),
+            new(@";", 12.300, 3.850, 1.000, 1.000),
+            new(@"'", 13.450, 3.850, 1.000, 1.000),
+            new(@"Return", 14.600, 3.850, 2.580, 1.000),
+            new(@"Shift", 0.000, 5.000, 2.450, 1.000),
+            new(@"Z", 2.600, 5.000, 1.000, 1.000),
+            new(@"X", 3.750, 5.000, 1.000, 1.000),
+            new(@"C", 4.900, 5.000, 1.000, 1.000),
+            new(@"V", 6.050, 5.000, 1.000, 1.000),
+            new(@"B", 7.200, 5.000, 1.000, 1.000),
+            new(@"N", 8.350, 5.000, 1.000, 1.000),
+            new(@"M", 9.500, 5.000, 1.000, 1.000),
+            new(@",", 10.650, 5.000, 1.000, 1.000),
+            new(@".", 11.800, 5.000, 1.000, 1.000),
+            new(@"/", 12.950, 5.000, 1.000, 1.000),
+            new(@"Shift", 14.100, 5.000, 3.080, 1.000),
+            new(@"LCtrl", 0.000, 6.150, 1.350, 1.000),
+            new(@"LWin", 1.500, 6.150, 1.300, 1.000),
+            new(@"LAlt", 2.950, 6.150, 1.300, 1.000),
+            new(@"Space", 4.400, 6.150, 7.730, 1.000),
+            new(@"RAlt", 12.280, 6.150, 1.300, 1.000),
+            new(@"RWin", 13.730, 6.150, 1.300, 1.000),
+            new(@"RCtrl", 15.180, 6.150, 2.000, 1.000),
+            new(@"PrintScreen", 17.730, 0.000, 1.000, 1.000),
+            new(@"ScrollLock", 18.880, 0.000, 1.000, 1.000),
+            new(@"Pause", 20.030, 0.000, 1.000, 1.000),
+            new(@"Insert", 17.730, 1.550, 1.000, 1.000),
+            new(@"Home", 18.880, 1.550, 1.000, 1.000),
+            new(@"PageUp", 20.030, 1.550, 1.000, 1.000),
+            new(@"Delete", 17.730, 2.700, 1.000, 1.000),
+            new(@"End", 18.880, 2.700, 1.000, 1.000),
+            new(@"PageDown", 20.030, 2.700, 1.000, 1.000),
+            new(@"Up", 18.880, 5.000, 1.000, 1.000),
+            new(@"Left", 17.730, 6.150, 1.000, 1.000),
+            new(@"Down", 18.880, 6.150, 1.000, 1.000),
+            new(@"Right", 20.030, 6.150, 1.000, 1.000),
+            new(@"NumLock", 21.730, 1.550, 1.000, 1.000),
+            new(@"Num/", 22.880, 1.550, 1.000, 1.000),
+            new(@"Num*", 24.030, 1.550, 1.000, 1.000),
+            new(@"Num-", 25.180, 1.550, 1.000, 1.000),
+            new(@"Num7", 21.730, 2.700, 1.000, 1.000),
+            new(@"Num8", 22.880, 2.700, 1.000, 1.000),
+            new(@"Num9", 24.030, 2.700, 1.000, 1.000),
+            new(@"Num+", 25.180, 2.700, 1.000, 2.150),
+            new(@"Num4", 21.730, 3.850, 1.000, 1.000),
+            new(@"Num5", 22.880, 3.850, 1.000, 1.000),
+            new(@"Num6", 24.030, 3.850, 1.000, 1.000),
+            new(@"Num1", 21.730, 5.000, 1.000, 1.000),
+            new(@"Num2", 22.880, 5.000, 1.000, 1.000),
+            new(@"Num3", 24.030, 5.000, 1.000, 1.000),
+            new(@"NumEnter", 25.180, 5.000, 1.000, 2.150),
+            new(@"Num0", 21.730, 6.150, 2.150, 1.000),
+            new(@"Num.", 24.030, 6.150, 1.000, 1.000),
         };
 
         private const double KeyFieldWidth = 26.18;
@@ -760,8 +762,9 @@ namespace KeyStats.Views
                 return new Frame(source, pixels, Backdrop);
             }
 
-            // Maps a rect in the frozen layout's unit space (key field origin, 26.18u x 6.75u) onto the
-            // rendered deck, which is inflated by 0.35u on every side.
+            // Maps a rect in the frozen layout's unit space (key field origin, 26.18u x 7.15u) onto the
+            // rendered deck, which is inflated by 0.35u on every side. The deck keeps the key field's
+            // aspect ratio, so one units-to-pixels factor serves both axes.
             public Int32Rect UnitRect(Int32Rect deck, double x, double y, double width, double height)
             {
                 var unitsToPixels = (deck.Width - 1) / (KeyFieldWidth + DeckPaddingUnits * 2);

@@ -827,8 +827,14 @@ public class KeyboardHeatmapControl : FrameworkElement
     {
         const double keyGap = 0.15;
         const double rowGap = keyGap;
-        var rowStep = 1.0 + rowGap;
-        var functionClusterGap = keyGap;
+        const double rowStep = 1.0 + rowGap;
+        // ANSI 104 shape: Esc matches the `~` cap, the function row is split into F1-F4 / F5-F8 / F9-F12
+        // with a wider break between groups, and the whole function row sits about half a cap above the
+        // number row.
+        const double escWidth = 1.0;
+        const double escToFunctionGap = 0.55;
+        const double functionGroupGap = 0.45;
+        const double functionRowGap = 0.55;
         var backspaceWidth = 2.38 - keyGap;
         var backslashWidth = 1.93 - keyGap;
         var rightShiftWidth = 2.93 + keyGap;
@@ -851,19 +857,28 @@ public class KeyboardHeatmapControl : FrameworkElement
 
         var yFunction = 0.0;
         var xFunction = 0.0;
-        var escWidth = 1.45;
-        var functionGapTotal = functionClusterGap + (functionKeys.Length - 1) * keyGap;
-        var functionKeyWidth = (keyboardRightEdge - escWidth - functionGapTotal) / functionKeys.Length;
+        // Reverse-solve the cap width so the split function row still lands exactly on the main block's
+        // right edge: 9 in-group gaps, 2 group breaks, plus the Esc-to-F1 gap.
+        const int functionGroupCount = 3;
+        var functionGroupBreaks = functionGroupCount - 1;
+        var functionGapTotal = (functionKeys.Length - functionGroupBreaks - 1) * keyGap
+            + functionGroupBreaks * functionGroupGap;
+        var functionKeyWidth = (keyboardRightEdge - escWidth - escToFunctionGap - functionGapTotal) / functionKeys.Length;
 
         items.Add(new KeySpec("Esc", "esc", new Rect(xFunction, yFunction, escWidth, 1.0)));
-        xFunction += escWidth + functionClusterGap;
-        foreach (var key in functionKeys)
+        xFunction += escWidth + escToFunctionGap;
+        for (var index = 0; index < functionKeys.Length; index++)
         {
-            items.Add(new KeySpec(key, key, new Rect(xFunction, yFunction, functionKeyWidth, 1.0)));
+            if (index > 0 && index % (functionKeys.Length / functionGroupCount) == 0)
+            {
+                xFunction += functionGroupGap - keyGap;
+            }
+
+            items.Add(new KeySpec(functionKeys[index], functionKeys[index], new Rect(xFunction, yFunction, functionKeyWidth, 1.0)));
             xFunction += functionKeyWidth + keyGap;
         }
 
-        var y1 = rowStep;
+        var y1 = 1.0 + functionRowGap;
         AppendRow(y1, 0, new[]
         {
             ("`", "~\n`", 1.0), ("1", "!\n1", 1.0), ("2", "@\n2", 1.0), ("3", "#\n3", 1.0), ("4", "$\n4", 1.0),

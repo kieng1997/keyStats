@@ -39,6 +39,7 @@ $testExecutable = Join-Path $archiveDir 'KeyboardHeatmapRenderingSmokeTest.exe'
     "/resource:$(Join-Path $PSScriptRoot '../KeyStats/Resources/Icons/tray-icon.png'),KeyStats.Resources.Icons.tray-icon.png" `
     (Resolve-Path -LiteralPath $ControlPath).Path `
     (Join-Path $PSScriptRoot '../KeyStats/Helpers/ThemeManager.cs') `
+    (Join-Path $PSScriptRoot 'tests/HeatmapPaletteStub.cs') `
     (Join-Path $PSScriptRoot 'tests/KeyboardHeatmapRenderingSmokeTest.cs')
 if ($LASTEXITCODE -ne 0) { throw "Isolated heatmap rendering test compilation failed (build archived at $archiveDir)." }
 Write-Host "  build: $archiveDir"
