@@ -22,7 +22,7 @@ function New-Repo {
     $dir = Join-Path $root $Name
     New-Item -ItemType Directory -Path $dir -Force | Out-Null
     $csproj = Join-Path $dir "KeyStats.csproj"
-    Set-Content -Path $csproj -Value '<Project><PropertyGroup><Version>1.54</Version></PropertyGroup></Project>'
+    Set-Content -Path $csproj -Value '<Project><PropertyGroup><Version>1.55</Version></PropertyGroup></Project>'
     Push-Location $dir
     try {
         git init -q
@@ -36,7 +36,7 @@ function New-Repo {
 # 正常解析：tag 自动取版本、无 tag 回退 csproj、显式 -Version 覆盖、v 前缀剥离
 $cases = @(
     @{ Name = "tag"; Tag = "v1.55"; Explicit = ""; Expected = "1.55" },
-    @{ Name = "no-tag"; Tag = ""; Explicit = ""; Expected = "1.54" },
+    @{ Name = "no-tag"; Tag = ""; Explicit = ""; Expected = "1.55" },
     @{ Name = "explicit"; Tag = "v1.55"; Explicit = "2.0.0"; Expected = "2.0.0" },
     @{ Name = "explicit-v"; Tag = "v1.55"; Explicit = "v2.0.0"; Expected = "2.0.0" }
 )
@@ -50,9 +50,9 @@ foreach ($case in $cases) {
 $snapshot = Join-Path $root "snapshot"
 New-Item -ItemType Directory -Path $snapshot -Force | Out-Null
 $snapshotProject = Join-Path $snapshot "KeyStats.csproj"
-Set-Content -Path $snapshotProject -Value '<Project><PropertyGroup><Version>1.54</Version></PropertyGroup></Project>'
+Set-Content -Path $snapshotProject -Value '<Project><PropertyGroup><Version>1.55</Version></PropertyGroup></Project>'
 $actual = Resolve-BuildVersion -ExplicitVersion "" -ProjectFile $snapshotProject -RepoDir $snapshot
-if ($actual -ne "1.54") { $fail += "非 git 快照: 期望 1.54，实际 $actual" }
+if ($actual -ne "1.55") { $fail += "非 git 快照: 期望 1.55，实际 $actual" }
 
 # 非法版本：自动 tag 或显式传入都应报错，而不是生成错包
 foreach ($bad in @(
