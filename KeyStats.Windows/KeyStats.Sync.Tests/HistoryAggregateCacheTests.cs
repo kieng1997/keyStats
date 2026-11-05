@@ -56,6 +56,58 @@ public sealed class HistoryAggregateCacheTests
     }
 
     [TestMethod]
+    public void AppFilteredHeatmap_MatchesReferenceForEveryRangeAndMode()
+    {
+        var data = SyntheticHistory.Create(dayCount: 120, statisticsDayOffset: 0);
+        var manager = data.CreateManager(out _);
+
+        foreach (var range in new[]
+                 {
+                     StatsManager.KeyboardHeatmapRange.Week,
+                     StatsManager.KeyboardHeatmapRange.Month,
+                     StatsManager.KeyboardHeatmapRange.All
+                 })
+        {
+            foreach (var mode in new[] { StatsManager.KeyboardHeatmapMode.Sum, StatsManager.KeyboardHeatmapMode.Average })
+            {
+                AssertAppHeatmapSummary(manager, data, HeatmapDates(data, range), range, mode, "APP0");
+            }
+        }
+    }
+
+    [TestMethod]
+    public void AppFilteredHeatmap_UnknownAppYieldsEmptySummary()
+    {
+        var data = SyntheticHistory.Create(dayCount: 60, statisticsDayOffset: 0);
+        var manager = data.CreateManager(out _);
+
+        var summary = manager.GetKeyboardHeatmapSummary(
+            StatsManager.KeyboardHeatmapRange.Week,
+            StatsManager.KeyboardHeatmapMode.Sum,
+            "does-not-exist");
+
+        Assert.AreEqual(0.0, summary.TotalKeyPresses, 1e-9);
+        Assert.AreEqual(0, summary.KeyCounts.Count);
+        Assert.IsNull(summary.SelectedAppName);
+    }
+
+    [TestMethod]
+    public void AppFilteredHeatmap_DifferentAppsInSameRangeDoNotShareCache()
+    {
+        var data = SyntheticHistory.Create(dayCount: 90, statisticsDayOffset: 0);
+        var manager = data.CreateManager(out _);
+        var dates = HeatmapDates(data, StatsManager.KeyboardHeatmapRange.All);
+
+        foreach (var app in new[] { "app0", "app1", "app2" })
+        {
+            AssertAppHeatmapSummary(manager, data, dates, StatsManager.KeyboardHeatmapRange.All, StatsManager.KeyboardHeatmapMode.Sum, app);
+        }
+
+        AssertAppHeatmapSummary(manager, data, dates, StatsManager.KeyboardHeatmapRange.All, StatsManager.KeyboardHeatmapMode.Sum, "APP0");
+        Assert.IsNull(manager.GetKeyboardHeatmapSummary(StatsManager.KeyboardHeatmapRange.All, StatsManager.KeyboardHeatmapMode.Sum).SelectedAppName);
+    }
+
+    [TestMethod]
     public void DayRolloverPending_LiveDaysStayOutsideCachedPrefix()
     {
         // CurrentStats still holds yesterday while the wall clock has moved on: the day being
@@ -665,6 +717,72 @@ public sealed class HistoryAggregateCacheTests
         foreach (var pair in totals)
         {
             Assert.AreEqual(pair.Value, actual.KeyCounts[pair.Key], 1e-9, "Heatmap key " + pair.Key);
+        }
+    }
+
+    /// <summary>Dates the manager aggregates for a heatmap range (the average divides by their count).</summary>
+    private static IReadOnlyList<DateTime> HeatmapDates(SyntheticHistory data, StatsManager.KeyboardHeatmapRange range)
+    {
+        var start = range switch
+        {
+            StatsManager.KeyboardHeatmapRange.Week => Today.AddDays(-6),
+            StatsManager.KeyboardHeatmapRange.Month => Today.AddDays(-29),
+            StatsManager.KeyboardHeatmapRange.All => data.HeatmapStart(null),
+            _ => Today
+        };
+
+        var dates = new List<DateTime>();
+        for (var date = start.Date; date <= Today; date = date.AddDays(1))
+        {
+            dates.Add(date);
+        }
+
+        return dates;
+    }
+
+    private static void AssertAppHeatmapSummary(
+        StatsManager manager,
+        SyntheticHistory data,
+        IReadOnlyList<DateTime> dates,
+        StatsManager.KeyboardHeatmapRange range,
+        StatsManager.KeyboardHeatmapMode mode,
+        string appName)
+    {
+        var totals = new Dictionary<string, double>(StringComparer.Ordinal);
+        var totalKeyPresses = 0.0;
+        foreach (var date in dates)
+        {
+            var daily = data.Resolve(date, null);
+            var app = daily.AppStats.Values.FirstOrDefault(a =>
+                string.Equals(a.AppName, appName, StringComparison.OrdinalIgnoreCase));
+            if (app == null)
+            {
+                continue;
+            }
+
+            totalKeyPresses += Math.Max(0, app.KeyPresses);
+            foreach (var pair in AggregateKeyboardHeatmapCounts(app.KeyPressCounts))
+            {
+                totals[pair.Key] = (totals.TryGetValue(pair.Key, out var current) ? current : 0) + pair.Value;
+            }
+        }
+
+        if (mode == StatsManager.KeyboardHeatmapMode.Average && dates.Count > 0)
+        {
+            totalKeyPresses /= dates.Count;
+            foreach (var key in totals.Keys.ToList())
+            {
+                totals[key] /= dates.Count;
+            }
+        }
+
+        var actual = manager.GetKeyboardHeatmapSummary(range, mode, appName);
+        Assert.AreEqual(appName.ToLowerInvariant(), actual.SelectedAppName, "Selected app " + range + "/" + mode);
+        Assert.AreEqual(totalKeyPresses, actual.TotalKeyPresses, 1e-9, "App heatmap total " + range + "/" + mode);
+        Assert.AreEqual(totals.Count, actual.KeyCounts.Count, "App heatmap key count " + range + "/" + mode);
+        foreach (var pair in totals)
+        {
+            Assert.AreEqual(pair.Value, actual.KeyCounts[pair.Key], 1e-9, "App heatmap key " + pair.Key);
         }
     }
 

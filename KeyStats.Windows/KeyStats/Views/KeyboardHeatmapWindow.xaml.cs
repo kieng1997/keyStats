@@ -248,8 +248,14 @@ public partial class KeyboardHeatmapWindow : Window
         }
         else
         {
-            var summary = manager.GetKeyboardHeatmapSummary(query.Range, query.Mode);
-            result.SelectedAppName = null;
+            var summary = manager.GetKeyboardHeatmapSummary(query.Range, query.Mode, query.AppName);
+            result.SelectedAppName = summary.SelectedAppName;
+            result.DayApps = manager.GetAppStatsSummary((StatsManager.AppStatsRange)query.Range)
+                .Where(app => app.KeyPresses > 0 || app.KeyPressCounts.Count > 0)
+                .OrderByDescending(app => app.KeyPresses)
+                .ThenBy(app => app.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+                .ThenBy(app => app.AppName, StringComparer.Ordinal)
+                .ToList();
             result.KeyCounts = summary.KeyCounts
                 .Where(kvp => KeyboardHeatmapControl.SupportedKeyIds.Contains(kvp.Key))
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.Ordinal);
@@ -268,16 +274,8 @@ public partial class KeyboardHeatmapWindow : Window
         _endDate = result.EndDate;
         _selectedDate = result.SelectedDate;
 
-        if (query.Range == StatsManager.KeyboardHeatmapRange.Today)
-        {
-            _selectedAppName = result.SelectedAppName;
-            UpdateAppFilter(result);
-        }
-        else
-        {
-            _selectedAppName = null;
-            ClearAppFilter();
-        }
+        _selectedAppName = result.SelectedAppName;
+        UpdateAppFilter(result);
 
         KeyboardHeatmapView.Apply(result.KeyCounts, result.ShowDecimals);
 
@@ -293,7 +291,7 @@ public partial class KeyboardHeatmapWindow : Window
         var hasActivity = query.Range == StatsManager.KeyboardHeatmapRange.Today
             ? result.KeyCounts.Values.Any(value => value > 0)
             : result.TotalKeyPresses > 0;
-        EmptyBadgeText.Text = query.Range == StatsManager.KeyboardHeatmapRange.Today && _selectedAppName != null
+        EmptyBadgeText.Text = _selectedAppName != null
             ? KeyStats.Properties.Strings.Heatmap_NoAppData
             : KeyStats.Properties.Strings.Heatmap_NoData;
         EmptyOverlay.Visibility = hasActivity ? Visibility.Collapsed : Visibility.Visible;
@@ -333,10 +331,6 @@ public partial class KeyboardHeatmapWindow : Window
         if (range == StatsManager.KeyboardHeatmapRange.Today)
         {
             _selectedDate = DateTime.Today;
-        }
-        else
-        {
-            _selectedAppName = null;
         }
 
         DatePickerPopup.IsOpen = false;
@@ -399,22 +393,8 @@ public partial class KeyboardHeatmapWindow : Window
         try
         {
             AppFilterComboBox.ItemsSource = options;
-            AppFilterComboBox.SelectedItem = options.First(option =>
-                string.Equals(option.AppName, _selectedAppName, StringComparison.OrdinalIgnoreCase));
-        }
-        finally
-        {
-            _suppressAppSelection = false;
-        }
-    }
-
-    private void ClearAppFilter()
-    {
-        _suppressAppSelection = true;
-        try
-        {
-            AppFilterComboBox.ItemsSource = null;
-            AppFilterComboBox.SelectedItem = null;
+            AppFilterComboBox.SelectedItem = options.FirstOrDefault(option =>
+                string.Equals(option.AppName, _selectedAppName, StringComparison.OrdinalIgnoreCase)) ?? options[0];
         }
         finally
         {
@@ -424,8 +404,7 @@ public partial class KeyboardHeatmapWindow : Window
 
     private void AppFilterComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_suppressAppSelection || _selectedRange != StatsManager.KeyboardHeatmapRange.Today ||
-            AppFilterComboBox.SelectedItem is not AppFilterOption option) return;
+        if (_suppressAppSelection || AppFilterComboBox.SelectedItem is not AppFilterOption option) return;
 
         _selectedAppName = option.AppName;
         App.CurrentApp?.TrackClick("keyboard_heatmap_app_filter", new Dictionary<string, object?>
@@ -477,7 +456,7 @@ public partial class KeyboardHeatmapWindow : Window
     {
         var isDaily = _selectedRange == StatsManager.KeyboardHeatmapRange.Today;
         var today = DateTime.Today;
-        AppFilterPanel.Visibility = isDaily ? Visibility.Visible : Visibility.Collapsed;
+        AppFilterPanel.Visibility = Visibility.Visible;
         PrevDayButton.Visibility = isDaily ? Visibility.Visible : Visibility.Collapsed;
         NextDayButton.Visibility = isDaily ? Visibility.Visible : Visibility.Collapsed;
         DatePickerButton.Visibility = isDaily ? Visibility.Visible : Visibility.Collapsed;

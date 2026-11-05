@@ -98,7 +98,7 @@ public class StatsManager : IDisposable
     private HistoryAggregateEntry<(double PeakKPS, double PeakCPS)>? _peakCache;
     private Dictionary<KeyHistoryRange, HistoryAggregateEntry<Dictionary<string, int>>>? _keyHistoryCache;
     private Dictionary<AppStatsRange, HistoryAggregateEntry<Dictionary<string, AppStats>>>? _appSummaryCache;
-    private Dictionary<KeyboardHeatmapRange, HistoryAggregateEntry<HeatmapTotals>>? _heatmapCache;
+    private Dictionary<(KeyboardHeatmapRange Range, string? AppName), HistoryAggregateEntry<HeatmapTotals>>? _heatmapCache;
     private Dictionary<(HistoryRange Range, HistoryMetric Metric), HistoryAggregateEntry<TrendSeriesTotals>>? _trendCache;
     private Dictionary<MouseTotalsRange, HistoryAggregateEntry<InputTotals>>? _inputTotalsCache;
 
@@ -1645,6 +1645,7 @@ public class StatsManager : IDisposable
     {
         public double TotalKeyPresses { get; set; }
         public Dictionary<string, double> KeyCounts { get; set; } = new(StringComparer.Ordinal);
+        public string? SelectedAppName { get; set; }
     }
 
     public List<AppStats> GetAppStatsSummary(AppStatsRange range)
@@ -1728,28 +1729,33 @@ public class StatsManager : IDisposable
 
     public KeyboardHeatmapSummary GetKeyboardHeatmapSummary(
         KeyboardHeatmapRange range,
-        KeyboardHeatmapMode mode)
+        KeyboardHeatmapMode mode,
+        string? appName = null)
     {
+        var normalizedApp = NormalizeHeatmapAppName(appName);
         var stable = GetHistoryAggregate(
             ref _heatmapCache,
-            range,
+            (range, normalizedApp),
             today => GetKeyboardHeatmapDates(range, today),
             today => LiveDatesFrom(
                 range == KeyboardHeatmapRange.All ? GetHeatmapStartLocked(today) : KeyboardHeatmapRangeStart(range, today),
                 today),
-            AggregateHeatmapTotals,
+            capture => AggregateHeatmapTotals(capture, normalizedApp),
             out var capture);
 
         var totalKeyPresses = stable.TotalKeyPresses;
         var keyCounts = new Dictionary<string, double>(stable.KeyCounts, StringComparer.Ordinal);
         var dayCount = stable.DayCount;
+        var selectedAppName = stable.SelectedAppName;
 
         foreach (var day in capture.LiveDays)
         {
             var daily = ResolveDay(capture, day);
-            totalKeyPresses += Math.Max(0, daily.KeyPresses);
+            var (dayKeyPresses, dayKeyCounts, dayAppName) = SelectHeatmapDaySource(daily, normalizedApp);
+            totalKeyPresses += dayKeyPresses;
+            selectedAppName ??= dayAppName;
 
-            foreach (var keyValue in AggregateKeyboardHeatmapCounts(daily.KeyPressCounts))
+            foreach (var keyValue in AggregateKeyboardHeatmapCounts(dayKeyCounts))
             {
                 keyCounts[keyValue.Key] = (keyCounts.TryGetValue(keyValue.Key, out var current) ? current : 0) + keyValue.Value;
             }
@@ -1769,22 +1775,55 @@ public class StatsManager : IDisposable
         return new KeyboardHeatmapSummary
         {
             TotalKeyPresses = totalKeyPresses,
-            KeyCounts = keyCounts
+            KeyCounts = keyCounts,
+            SelectedAppName = selectedAppName
         };
     }
 
-    private static HeatmapTotals AggregateHeatmapTotals(HistoryAggregateCapture capture)
+    /// <summary>Cache keys are case-insensitive so "APP0" and "app0" share one aggregate.</summary>
+    private static string? NormalizeHeatmapAppName(string? appName) =>
+        string.IsNullOrWhiteSpace(appName) ? null : appName!.Trim().ToUpperInvariant();
+
+    /// <summary>
+    /// Picks the day's key counters: the whole day, or one app's when a filter is active. The
+    /// returned app name is the canonical spelling from the data, null when the app has no entry.
+    /// </summary>
+    private static (double KeyPresses, Dictionary<string, int> KeyCounts, string? AppName) SelectHeatmapDaySource(
+        DailyStats daily,
+        string? appName)
+    {
+        if (appName == null)
+        {
+            return (Math.Max(0, daily.KeyPresses), daily.KeyPressCounts, null);
+        }
+
+        // Same activity predicate as the per-day filter list, so an app that is absent from the
+        // dropdown never claims to be the selected one.
+        var app = daily.AppStats.Values.FirstOrDefault(a =>
+            (a.KeyPresses > 0 || a.KeyPressCounts.Count > 0) &&
+            string.Equals(a.AppName, appName, StringComparison.OrdinalIgnoreCase));
+        return app == null
+            ? (0, EmptyKeyPressCounts, null)
+            : (Math.Max(0, app.KeyPresses), app.KeyPressCounts, app.AppName);
+    }
+
+    private static readonly Dictionary<string, int> EmptyKeyPressCounts = new(StringComparer.Ordinal);
+
+    private static HeatmapTotals AggregateHeatmapTotals(HistoryAggregateCapture capture, string? appName)
     {
         var totalKeyPresses = 0.0;
         var keyCounts = new Dictionary<string, double>(StringComparer.Ordinal);
         var dayCount = 0;
+        string? selectedAppName = null;
 
         foreach (var day in capture.StableDays)
         {
             var daily = ResolveDay(capture, day);
-            totalKeyPresses += Math.Max(0, daily.KeyPresses);
+            var (dayKeyPresses, dayKeyCounts, dayAppName) = SelectHeatmapDaySource(daily, appName);
+            totalKeyPresses += dayKeyPresses;
+            selectedAppName ??= dayAppName;
 
-            foreach (var keyValue in AggregateKeyboardHeatmapCounts(daily.KeyPressCounts))
+            foreach (var keyValue in AggregateKeyboardHeatmapCounts(dayKeyCounts))
             {
                 keyCounts[keyValue.Key] = (keyCounts.TryGetValue(keyValue.Key, out var current) ? current : 0) + keyValue.Value;
             }
@@ -1792,7 +1831,7 @@ public class StatsManager : IDisposable
             dayCount++;
         }
 
-        return new HeatmapTotals(totalKeyPresses, keyCounts, dayCount);
+        return new HeatmapTotals(totalKeyPresses, keyCounts, dayCount, selectedAppName);
     }
 
     private List<DateTime> GetKeyboardHeatmapDates(KeyboardHeatmapRange range, DateTime today)
@@ -2206,16 +2245,18 @@ public class StatsManager : IDisposable
 
     private readonly struct HeatmapTotals
     {
-        public HeatmapTotals(double totalKeyPresses, Dictionary<string, double> keyCounts, int dayCount)
+        public HeatmapTotals(double totalKeyPresses, Dictionary<string, double> keyCounts, int dayCount, string? selectedAppName)
         {
             TotalKeyPresses = totalKeyPresses;
             KeyCounts = keyCounts;
             DayCount = dayCount;
+            SelectedAppName = selectedAppName;
         }
 
         public double TotalKeyPresses { get; }
         public Dictionary<string, double> KeyCounts { get; }
         public int DayCount { get; }
+        public string? SelectedAppName { get; }
     }
 
     private readonly struct TrendSeriesTotals
