@@ -13,4 +13,3 @@ if errorlevel 1 (
 
 echo.
 echo Packaging completed successfully.
-pause
