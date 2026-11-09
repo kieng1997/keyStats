@@ -98,6 +98,8 @@ public sealed class ThemeManager : IDisposable
         SetColor(res, "DangerColor", "#C42B1C");
         SetColor(res, "StatusNeutralColor", "#8A8A8A");
         SetColor(res, "MouseShadowColor", "#33000000");
+        SetColor(res, "MouseHighlightColor", "#6BFFFFFF");
+        SetColor(res, "MouseShadeColor", "#4D000000");
 
         SetBrush(res, "AccentBrush", "#0067C0");
         SetBrush(res, "AccentLightBrush", "#60CDFF");
@@ -122,12 +124,13 @@ public sealed class ThemeManager : IDisposable
         SetBrush(res, "AppStatsKeysBrush", "#0067C0");
         SetBrush(res, "AppStatsClicksBrush", "#1E9E4A");
         SetBrush(res, "AppStatsScrollBrush", "#E27A1A");
-        SetBrush(res, "MouseShellBrush", "#FDFDFD");
-        SetBrush(res, "MouseButtonBrush", "#FFFFFF");
-        SetBrush(res, "MouseWheelBrush", "#E9E9E9");
-        SetBrush(res, "MouseWheelAccentBrush", "#9A9A9A");
-        SetBrush(res, "MouseSideButtonBrush", "#F2F2F2");
-        SetBrush(res, "MouseEdgeBrush", "#D0D0D0");
+        SetBrush(res, "MouseShellBrush", "#E2E4E5");
+        SetBrush(res, "MouseButtonBrush", "#E8E9EA");
+        SetBrush(res, "MouseWheelBrush", "#161919");
+        SetBrush(res, "MouseWheelAccentBrush", "#606666");
+        SetBrush(res, "MouseSideButtonBrush", "#D7D9DA");
+        SetBrush(res, "MouseEdgeBrush", "#AEB2B4");
+        SetBrush(res, "MouseIndicatorBrush", "#22B6E5");
         SetBrush(res, "ContextMenuBackgroundBrush", "#F9F9F9");
         SetBrush(res, "MenuItemHoverBrush", "#0A000000");
         SetBrush(res, "ChartAreaBrush", "#15808080");
@@ -156,6 +159,8 @@ public sealed class ThemeManager : IDisposable
         SetColor(res, "DangerColor", "#FF6B5F");
         SetColor(res, "StatusNeutralColor", "#8A8A8A");
         SetColor(res, "MouseShadowColor", "#66000000");
+        SetColor(res, "MouseHighlightColor", "#36FFFFFF");
+        SetColor(res, "MouseShadeColor", "#CC000000");
 
         SetBrush(res, "AccentBrush", "#0078D4");
         SetBrush(res, "AccentLightBrush", "#60CDFF");
@@ -180,12 +185,13 @@ public sealed class ThemeManager : IDisposable
         SetBrush(res, "AppStatsKeysBrush", "#2AA3FF");
         SetBrush(res, "AppStatsClicksBrush", "#49C779");
         SetBrush(res, "AppStatsScrollBrush", "#FFB24A");
-        SetBrush(res, "MouseShellBrush", "#242424");
-        SetBrush(res, "MouseButtonBrush", "#303030");
-        SetBrush(res, "MouseWheelBrush", "#3E3E3E");
-        SetBrush(res, "MouseWheelAccentBrush", "#8A8A8A");
-        SetBrush(res, "MouseSideButtonBrush", "#2C2C2C");
-        SetBrush(res, "MouseEdgeBrush", "#565656");
+        SetBrush(res, "MouseShellBrush", "#292C30");
+        SetBrush(res, "MouseButtonBrush", "#303439");
+        SetBrush(res, "MouseWheelBrush", "#101315");
+        SetBrush(res, "MouseWheelAccentBrush", "#69737B");
+        SetBrush(res, "MouseSideButtonBrush", "#23272B");
+        SetBrush(res, "MouseEdgeBrush", "#555C62");
+        SetBrush(res, "MouseIndicatorBrush", "#38BDF8");
         SetBrush(res, "ContextMenuBackgroundBrush", "#2C2C2C");
         SetBrush(res, "MenuItemHoverBrush", "#15FFFFFF");
         SetBrush(res, "ChartAreaBrush", "#20808080");

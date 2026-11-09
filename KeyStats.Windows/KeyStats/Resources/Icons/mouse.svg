@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="419" height="700" viewBox="0 0 419 700" role="img" aria-labelledby="title desc">
+  <title id="title">鼠标俯视图</title>
+  <desc id="desc">按参考图比例绘制的五键鼠标，包含分体按键、带纹理的滚轮、侧键、指示灯和掌托标志。背景透明，随系统切换白色或黑色外壳。</desc>
+  <style>
+    :root { --shell:#e2e4e5; --button:#e8e9ea; --side:#d7d9da; --edge:#aeb2b4; --wheel:#161919; --accent:#606666; --highlight:#fff; --highlight-opacity:.42; --shade:#000; --shade-opacity:.3; --led:#22b6e5; }
+    @media (prefers-color-scheme:dark) {
+      :root:not([data-theme="light"]) { --shell:#292c30; --button:#303439; --side:#23272b; --edge:#555c62; --wheel:#101315; --accent:#69737b; --highlight:#fff; --highlight-opacity:.21; --shade:#000; --shade-opacity:.8; --led:#38bdf8; }
+    }
+    :root[data-theme="dark"] { --shell:#292c30; --button:#303439; --side:#23272b; --edge:#555c62; --wheel:#101315; --accent:#69737b; --highlight:#fff; --highlight-opacity:.21; --shade:#000; --shade-opacity:.8; --led:#38bdf8; }
+  </style>
+  <defs>
+    <path id="shell" d="M219 46 C167 48 118 72 87 108 C73 139 71 171 73 211 C73 257 79 299 77 340 C75 387 67 437 68 489 C67 547 77 593 110 631 C140 663 178 676 221 677 C271 677 317 653 348 615 C375 581 384 536 382 485 C381 431 370 384 369 337 C369 293 378 249 377 207 C377 165 373 131 362 107 C330 72 280 50 230 46 Z"/>
+    <path id="left-button" d="M219 46 C168 48 120 72 88 105 C82 132 83 166 86 207 L94 314 Q95 328 108 329 L222 329 L222 218 C208 217 201 211 201 199 L201 137 C201 124 208 117 222 116 L222 59 Z"/>
+    <path id="right-button" d="M230 46 C281 50 331 73 360 104 C367 140 365 183 363 219 L353 315 Q351 329 338 329 L227 329 L227 218 C241 217 248 211 248 199 L248 137 C248 124 240 117 227 116 L227 59 Z"/>
+    <linearGradient id="shell-shading" x1="0" y1=".4" x2="1" y2=".4" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="var(--highlight)" stop-opacity="var(--highlight-opacity)"/>
+      <stop offset=".35" stop-color="var(--highlight)" stop-opacity="0"/>
+      <stop offset=".72" stop-color="var(--shade)" stop-opacity=".04"/>
+      <stop offset="1" stop-color="var(--shade)" stop-opacity="var(--shade-opacity)"/>
+    </linearGradient>
+    <radialGradient id="palm-light" cx=".33" cy=".39" r=".72">
+      <stop offset="0" stop-color="var(--highlight)" stop-opacity=".32"/>
+      <stop offset="1" stop-color="var(--highlight)" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="button-shading" x1="0" y1=".1" x2="1" y2=".65">
+      <stop offset="0" stop-color="var(--highlight)" stop-opacity=".23"/>
+      <stop offset=".42" stop-color="var(--highlight)" stop-opacity="0"/>
+      <stop offset="1" stop-color="var(--shade)" stop-opacity=".15"/>
+    </linearGradient>
+    <linearGradient id="bezel-shading" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="var(--shade)" stop-opacity=".65"/>
+      <stop offset=".17" stop-color="var(--highlight)" stop-opacity=".8"/>
+      <stop offset=".3" stop-color="var(--shade)" stop-opacity=".5"/>
+      <stop offset=".72" stop-color="var(--shade)" stop-opacity=".8"/>
+      <stop offset=".86" stop-color="var(--highlight)" stop-opacity=".7"/>
+      <stop offset="1" stop-color="var(--shade)" stop-opacity=".6"/>
+    </linearGradient>
+    <linearGradient id="wheel-shading" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="var(--shade)" stop-opacity=".8"/>
+      <stop offset=".28" stop-color="var(--highlight)" stop-opacity=".1"/>
+      <stop offset=".6" stop-color="var(--highlight)" stop-opacity="0"/>
+      <stop offset="1" stop-color="var(--shade)" stop-opacity=".95"/>
+    </linearGradient>
+  </defs>
+  <use href="#shell" fill="var(--shell)" stroke="var(--edge)" stroke-width=".7"/>
+  <use href="#shell" fill="url(#shell-shading)"/>
+  <use href="#shell" fill="url(#palm-light)"/>
+  <path d="M81 245 C76 266 76 291 78 315 Q80 324 83 314 L87 263 Q87 247 81 245 Z M78 345 C74 365 74 394 77 422 Q80 434 83 422 L86 363 Q85 348 78 345 Z" fill="var(--wheel)" opacity=".65"/>
+  <path d="M80 247 C77 269 77 293 79 313 Q80 318 82 312 L85 263 Q85 251 80 247 Z M77 348 C76 369 76 398 78 420 Q80 426 81 418 L84 363 Q83 351 77 348 Z" fill="var(--side)" stroke="var(--edge)" stroke-width=".8"/>
+  <path d="M84 118 C80 168 86 245 94 316 Q96 331 109 331 L222 330 M366 118 C369 170 362 251 354 316 Q352 331 338 331 L226 330" fill="none" stroke="var(--wheel)" stroke-width="2.3"/>
+  <path d="M222 58 L226 58 L226 330 L222 330 Z" fill="var(--wheel)"/>
+  <use href="#left-button" fill="var(--button)"/>
+  <use href="#left-button" fill="url(#button-shading)"/>
+  <use href="#right-button" fill="var(--button)"/>
+  <use href="#right-button" fill="url(#button-shading)"/>
+  <path d="M99 332 Q152 335 220 333 M229 333 Q290 335 347 332" fill="none" stroke="var(--highlight)" stroke-opacity=".45" stroke-width="1.5"/>
+  <path d="M222 115 C207 115 200 123 200 138 L200 198 C200 213 208 220 222 220 L227 220 C242 220 249 212 249 198 L249 138 C249 123 242 115 227 115 Z" fill="var(--side)"/>
+  <path d="M222 115 C207 115 200 123 200 138 L200 198 C200 213 208 220 222 220 L227 220 C242 220 249 212 249 198 L249 138 C249 123 242 115 227 115 Z" fill="url(#bezel-shading)"/>
+  <path d="M221 122 C214 122 211 129 211 139 L211 196 Q211 210 221 213 L227 213 Q237 210 237 196 L237 139 C237 128 234 122 227 122 Z" fill="var(--wheel)"/>
+  <path d="M221 122 C214 122 211 129 211 139 L211 196 Q211 210 221 213 L227 213 Q237 210 237 196 L237 139 C237 128 234 122 227 122 Z" fill="url(#wheel-shading)"/>
+  <path d="M215 132 Q224 134 233 132 M214 136 Q224 138 234 136 M214 140 Q224 142 234 140 M214 144 Q224 146 234 144 M214 148 Q224 150 234 148 M214 152 Q224 154 234 152 M214 156 Q224 158 234 156 M214 160 Q224 162 234 160 M214 164 Q224 166 234 164 M214 168 Q224 170 234 168 M214 172 Q224 174 234 172 M214 176 Q224 178 234 176 M214 180 Q224 182 234 180 M214 184 Q224 186 234 184 M214 188 Q224 190 234 188 M214 192 Q224 194 234 192 M215 196 Q224 198 233 196 M216 200 Q224 202 232 200 M218 204 Q224 206 230 204" fill="none" stroke="var(--accent)" stroke-width=".7" opacity=".55"/>
+  <path d="M207 137 L207 198 M242 137 L242 198" fill="none" stroke="var(--highlight)" stroke-width="1.2" opacity=".65"/>
+  <circle cx="224.5" cy="367.5" r="2.3" fill="var(--led)"/>
+  <path d="M226 489 C206 489 191 504 191 524 C191 543 206 558 226 558 L226 544 C214 544 205 536 205 524 C205 512 214 503 226 503 Z M228 517 L258 517 L258 549 L243 549 L243 532 L228 532 Z" fill="var(--accent)" opacity=".52"/>
+</svg>
