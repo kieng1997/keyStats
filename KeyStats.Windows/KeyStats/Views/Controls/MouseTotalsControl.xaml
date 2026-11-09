@@ -132,7 +132,7 @@
                 </Viewbox>
             </Canvas>
         </Viewbox>
-        <Viewbox Grid.Row="1" Margin="0,6,0,0" HorizontalAlignment="Right" VerticalAlignment="Center"
+        <Viewbox Grid.Row="1" Margin="0,6,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"
                  Stretch="Uniform" StretchDirection="DownOnly">
             <Grid>
                 <Grid.ColumnDefinitions>
