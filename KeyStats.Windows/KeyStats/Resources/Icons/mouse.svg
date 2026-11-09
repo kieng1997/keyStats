@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="419" height="700" viewBox="0 0 419 700" role="img" aria-labelledby="title desc">
   <title id="title">鼠标俯视图</title>
-  <desc id="desc">按参考图比例绘制的五键鼠标，包含分体按键、带纹理的滚轮、侧键、指示灯和掌托标志。背景透明，随系统切换白色或黑色外壳。</desc>
+  <desc id="desc">按参考图比例绘制的五键鼠标，包含分体按键、带纹理的滚轮、紧邻的侧键、指示灯和掌托字母 M。背景透明，随系统切换白色或黑色外壳。</desc>
   <style>
     :root { --shell:#e2e4e5; --button:#e8e9ea; --side:#d7d9da; --edge:#aeb2b4; --wheel:#161919; --accent:#606666; --highlight:#fff; --highlight-opacity:.42; --shade:#000; --shade-opacity:.3; --led:#22b6e5; }
     @media (prefers-color-scheme:dark) {
@@ -12,6 +12,7 @@
     <path id="shell" d="M219 46 C167 48 118 72 87 108 C73 139 71 171 73 211 C73 257 79 299 77 340 C75 387 67 437 68 489 C67 547 77 593 110 631 C140 663 178 676 221 677 C271 677 317 653 348 615 C375 581 384 536 382 485 C381 431 370 384 369 337 C369 293 378 249 377 207 C377 165 373 131 362 107 C330 72 280 50 230 46 Z"/>
     <path id="left-button" d="M219 46 C168 48 120 72 88 105 C82 132 83 166 86 207 L94 314 Q95 328 108 329 L222 329 L222 218 C208 217 201 211 201 199 L201 137 C201 124 208 117 222 116 L222 59 Z"/>
     <path id="right-button" d="M230 46 C281 50 331 73 360 104 C367 140 365 183 363 219 L353 315 Q351 329 338 329 L227 329 L227 218 C241 217 248 211 248 199 L248 137 C248 124 240 117 227 116 L227 59 Z"/>
+    <path id="side-buttons" d="M79 285 C76 293 76 306 77 321 L79 337 Q80 340 82 334 C85 320 86 305 85 292 Q84 285 79 285 Z M77 352 C74 361 74 379 76 398 L78 418 Q79 423 81 417 C83 403 85 382 83 363 Q81 353 77 352 Z"/>
     <linearGradient id="shell-shading" x1="0" y1=".4" x2="1" y2=".4" gradientUnits="objectBoundingBox">
       <stop offset="0" stop-color="var(--highlight)" stop-opacity="var(--highlight-opacity)"/>
       <stop offset=".35" stop-color="var(--highlight)" stop-opacity="0"/>
@@ -45,8 +46,10 @@
   <use href="#shell" fill="var(--shell)" stroke="var(--edge)" stroke-width=".7"/>
   <use href="#shell" fill="url(#shell-shading)"/>
   <use href="#shell" fill="url(#palm-light)"/>
-  <path d="M81 245 C76 266 76 291 78 315 Q80 324 83 314 L87 263 Q87 247 81 245 Z M78 345 C74 365 74 394 77 422 Q80 434 83 422 L86 363 Q85 348 78 345 Z" fill="var(--wheel)" opacity=".65"/>
-  <path d="M80 247 C77 269 77 293 79 313 Q80 318 82 312 L85 263 Q85 251 80 247 Z M77 348 C76 369 76 398 78 420 Q80 426 81 418 L84 363 Q83 351 77 348 Z" fill="var(--side)" stroke="var(--edge)" stroke-width=".8"/>
+  <path d="M79 282 C74 291 73 305 74 322 L76 338 Q77 344 81 342 C85 331 88 312 88 292 Q86 282 79 282 Z M77 349 C72 359 71 378 73 399 L75 421 Q77 429 81 423 C85 409 87 385 86 362 Q83 349 77 349 Z" fill="var(--wheel)" opacity=".4"/>
+  <use href="#side-buttons" fill="var(--side)" stroke="var(--edge)" stroke-width="1.2"/>
+  <use href="#side-buttons" fill="url(#button-shading)" stroke="none" opacity=".5"/>
+  <path d="M78 293 C76 307 79 327 80 333 M76 361 C74 381 78 402 79 415" fill="none" stroke="var(--highlight)" stroke-width="1" opacity=".55"/>
   <path d="M84 118 C80 168 86 245 94 316 Q96 331 109 331 L222 330 M366 118 C369 170 362 251 354 316 Q352 331 338 331 L226 330" fill="none" stroke="var(--wheel)" stroke-width="2.3"/>
   <path d="M222 58 L226 58 L226 330 L222 330 Z" fill="var(--wheel)"/>
   <use href="#left-button" fill="var(--button)"/>
@@ -61,5 +64,5 @@
   <path d="M215 132 Q224 134 233 132 M214 136 Q224 138 234 136 M214 140 Q224 142 234 140 M214 144 Q224 146 234 144 M214 148 Q224 150 234 148 M214 152 Q224 154 234 152 M214 156 Q224 158 234 156 M214 160 Q224 162 234 160 M214 164 Q224 166 234 164 M214 168 Q224 170 234 168 M214 172 Q224 174 234 172 M214 176 Q224 178 234 176 M214 180 Q224 182 234 180 M214 184 Q224 186 234 184 M214 188 Q224 190 234 188 M214 192 Q224 194 234 192 M215 196 Q224 198 233 196 M216 200 Q224 202 232 200 M218 204 Q224 206 230 204" fill="none" stroke="var(--accent)" stroke-width=".7" opacity=".55"/>
   <path d="M207 137 L207 198 M242 137 L242 198" fill="none" stroke="var(--highlight)" stroke-width="1.2" opacity=".65"/>
   <circle cx="224.5" cy="367.5" r="2.3" fill="var(--led)"/>
-  <path d="M226 489 C206 489 191 504 191 524 C191 543 206 558 226 558 L226 544 C214 544 205 536 205 524 C205 512 214 503 226 503 Z M228 517 L258 517 L258 549 L243 549 L243 532 L228 532 Z" fill="var(--accent)" opacity=".52"/>
+  <path d="M194 554 L194 493 L208 493 L224.5 521 L241 493 L255 493 L255 554 L241 554 L241 517 L224.5 543 L208 517 L208 554 Z" fill="var(--accent)" opacity=".52"/>
 </svg>

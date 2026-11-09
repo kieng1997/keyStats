@@ -28,6 +28,7 @@
         <Geometry x:Key="MouseRightButtonGeometry">M230 46 C281 50 331 73 360 104 C367 140 365 183 363 219 L353 315 Q351 329 338 329 L227 329 L227 218 C241 217 248 211 248 199 L248 137 C248 124 240 117 227 116 L227 59 Z</Geometry>
         <Geometry x:Key="MouseWheelHousingGeometry">M222 115 C207 115 200 123 200 138 L200 198 C200 213 208 220 222 220 L227 220 C242 220 249 212 249 198 L249 138 C249 123 242 115 227 115 Z</Geometry>
         <Geometry x:Key="MouseWheelGeometry">M221 122 C214 122 211 129 211 139 L211 196 Q211 210 221 213 L227 213 Q237 210 237 196 L237 139 C237 128 234 122 227 122 Z</Geometry>
+        <Geometry x:Key="MouseSideButtonsGeometry">M79 285 C76 293 76 306 77 321 L79 337 Q80 340 82 334 C85 320 86 305 85 292 Q84 285 79 285 Z M77 352 C74 361 74 379 76 398 L78 418 Q79 423 81 417 C83 403 85 382 83 363 Q81 353 77 352 Z</Geometry>
         <LinearGradientBrush x:Key="MouseShellLighting" StartPoint="0,0.4" EndPoint="1,0.4">
             <GradientStop Offset="0" Color="{DynamicResource MouseHighlightColor}"/>
             <GradientStop Offset="0.35" Color="{DynamicResource MouseClearColor}"/>
@@ -63,7 +64,7 @@
             <Canvas Width="264" Height="264">
                 <Path Stroke="{DynamicResource MouseEdgeBrush}" StrokeThickness="0.8"
                       StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                      Data="M60 105 L72 105 L82 110 M60 150 L80 150 M145 34 C165 18 184 16 207 16"/>
+                      Data="M60 117 L73 117 L82 114 M60 150 L80 144 M145 34 C165 18 184 16 207 16"/>
                 <!-- SVG and WPF use the reference image's 419 x 700 coordinates. -->
                 <Viewbox Canvas.Left="51" Canvas.Top="-14" Width="167.6" Height="280">
                     <Canvas Width="419" Height="700">
@@ -76,10 +77,13 @@
                         </Path>
                         <Path Data="{StaticResource MouseShellGeometry}" Fill="{StaticResource MouseShellLighting}"/>
                         <Path Data="{StaticResource MouseShellGeometry}" Fill="{StaticResource MousePalmLighting}" Opacity="0.35"/>
-                        <Path Data="M81 245 C76 266 76 291 78 315 Q80 324 83 314 L87 263 Q87 247 81 245 Z M78 345 C74 365 74 394 77 422 Q80 434 83 422 L86 363 Q85 348 78 345 Z"
-                              Fill="{DynamicResource MouseWheelBrush}" Opacity="0.65"/>
-                        <Path Data="M80 247 C77 269 77 293 79 313 Q80 318 82 312 L85 263 Q85 251 80 247 Z M77 348 C76 369 76 398 78 420 Q80 426 81 418 L84 363 Q83 351 77 348 Z"
-                              Fill="{DynamicResource MouseSideButtonBrush}" Stroke="{DynamicResource MouseEdgeBrush}" StrokeThickness="0.8"/>
+                        <Path Data="M79 282 C74 291 73 305 74 322 L76 338 Q77 344 81 342 C85 331 88 312 88 292 Q86 282 79 282 Z M77 349 C72 359 71 378 73 399 L75 421 Q77 429 81 423 C85 409 87 385 86 362 Q83 349 77 349 Z"
+                              Fill="{DynamicResource MouseWheelBrush}" Opacity="0.4"/>
+                        <Path Data="{StaticResource MouseSideButtonsGeometry}"
+                              Fill="{DynamicResource MouseSideButtonBrush}" Stroke="{DynamicResource MouseEdgeBrush}" StrokeThickness="1.2"/>
+                        <Path Data="{StaticResource MouseSideButtonsGeometry}" Fill="{StaticResource MouseButtonLighting}" Opacity="0.5"/>
+                        <Path Data="M78 293 C76 307 79 327 80 333 M76 361 C74 381 78 402 79 415"
+                              Stroke="{DynamicResource MouseHighlightBrush}" StrokeThickness="1" Opacity="0.55"/>
                         <Path Data="M84 118 C80 168 86 245 94 316 Q96 331 109 331 L222 330 M366 118 C369 170 362 251 354 316 Q352 331 338 331 L226 330"
                               Stroke="{DynamicResource MouseWheelBrush}" StrokeThickness="2.3"/>
                         <Path Data="M222 58 L226 58 L226 330 L222 330 Z" Fill="{DynamicResource MouseWheelBrush}"/>
@@ -98,11 +102,11 @@
                               Stroke="{DynamicResource MouseHighlightBrush}" StrokeThickness="1.2" Opacity="0.65"/>
                         <Ellipse Canvas.Left="222.2" Canvas.Top="365.2" Width="4.6" Height="4.6"
                                  Fill="{DynamicResource MouseIndicatorBrush}"/>
-                        <Path Data="M226 489 C206 489 191 504 191 524 C191 543 206 558 226 558 L226 544 C214 544 205 536 205 524 C205 512 214 503 226 503 Z M228 517 L258 517 L258 549 L243 549 L243 532 L228 532 Z"
+                        <Path Data="M194 554 L194 493 L208 493 L224.5 521 L241 493 L255 493 L255 554 L241 554 L241 517 L224.5 543 L208 517 L208 554 Z"
                               Fill="{DynamicResource MouseWheelAccentBrush}" Opacity="0.52"/>
                     </Canvas>
                 </Viewbox>
-                <StackPanel Canvas.Left="0" Canvas.Top="87" Width="58">
+                <StackPanel Canvas.Left="0" Canvas.Top="99" Width="58">
                     <TextBlock Text="{x:Static p:Strings.Click_Forward}" Style="{StaticResource MouseLabelName}" TextAlignment="Right"/>
                     <TextBlock Text="{Binding HistorySideForwardClicks}" Style="{StaticResource MouseLabelValue}"
                                TextAlignment="Right" Margin="0,1,0,0"/>
