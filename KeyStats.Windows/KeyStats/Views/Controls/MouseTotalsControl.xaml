@@ -1,0 +1,148 @@
+<UserControl x:Class="KeyStats.Views.Controls.MouseTotalsControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:KeyStats.Views.Controls"
+             xmlns:p="clr-namespace:KeyStats.Properties">
+    <UserControl.Resources>
+        <Style x:Key="MouseLabelName" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="9.5"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+        </Style>
+        <Style x:Key="MouseLabelValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        </Style>
+        <Style x:Key="MouseInBodyName" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="9"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="MouseInBodyValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Viewbox Grid.Row="0" Stretch="Uniform" StretchDirection="Both" MaxWidth="330"
+                 HorizontalAlignment="Center" VerticalAlignment="Top">
+            <Canvas Width="264" Height="250">
+
+                <Path Stroke="{DynamicResource MouseEdgeBrush}" StrokeThickness="1"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                      Data="M 50,99 L 58,99 L 68,118"/>
+                <Path Stroke="{DynamicResource MouseEdgeBrush}" StrokeThickness="1"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                      Data="M 50,159 L 68,159"/>
+                <!-- Middle-button leader line (from the wheel's top-right, clear of the right-button text) -->
+                <Path Stroke="{DynamicResource MouseEdgeBrush}" StrokeThickness="1"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                      Data="M 132,30 C 150,22 168,16 186,16"/>
+
+                <!-- The upper side button is Forward, matching a right-handed mouse. -->
+                <StackPanel Canvas.Left="0" Canvas.Top="84" Width="50">
+                    <TextBlock Text="{x:Static p:Strings.Click_Forward}" Style="{StaticResource MouseLabelName}"
+                               TextAlignment="Right"/>
+                    <TextBlock Text="{Binding HistorySideForwardClicks}" Style="{StaticResource MouseLabelValue}"
+                               TextAlignment="Right" Margin="0,1,0,0"/>
+                </StackPanel>
+                <StackPanel Canvas.Left="0" Canvas.Top="144" Width="50">
+                    <TextBlock Text="{x:Static p:Strings.Click_Back}" Style="{StaticResource MouseLabelName}"
+                               TextAlignment="Right"/>
+                    <TextBlock Text="{Binding HistorySideBackClicks}" Style="{StaticResource MouseLabelValue}"
+                               TextAlignment="Right" Margin="0,1,0,0"/>
+                </StackPanel>
+
+                <StackPanel Canvas.Left="192" Canvas.Top="2" Width="60">
+                    <TextBlock Text="{x:Static p:Strings.Click_Middle}" Style="{StaticResource MouseLabelName}"/>
+                    <TextBlock Text="{Binding HistoryMiddleClicks}" Style="{StaticResource MouseLabelValue}"
+                               Margin="0,1,0,0"/>
+                </StackPanel>
+
+                <Canvas Canvas.Left="52" Canvas.Top="0" Width="160" Height="250">
+                    <Path Fill="{DynamicResource MouseShellBrush}" Stroke="{DynamicResource MouseEdgeBrush}"
+                          StrokeThickness="1"
+                          Data="M 32,40 C 32,16 54,8 80,8 C 106,8 128,16 128,40 C 136,80 137,134 133,184 C 130,218 114,244 80,246 C 46,244 30,218 27,184 C 23,134 24,80 32,40 Z">
+                        <Path.Effect>
+                            <DropShadowEffect BlurRadius="14" ShadowDepth="3" Direction="270"
+                                              Opacity="1" Color="{DynamicResource MouseShadowColor}"/>
+                        </Path.Effect>
+                    </Path>
+
+                    <Path Fill="{DynamicResource MouseShellBrush}" Stroke="{DynamicResource MouseEdgeBrush}"
+                          StrokeThickness="1"
+                          Data="M 30.5,89 C 50,85 110,85 129.5,89 C 132.5,130 133,160 133,184 C 130,218 114,244 80,246 C 46,244 30,218 27,184 C 27,160 27.5,130 30.5,89 Z"/>
+                    <Path Stroke="{DynamicResource MouseEdgeBrush}" StrokeThickness="1" Opacity="0.5"
+                          Data="M 42,112 C 62,104 98,104 118,112"/>
+
+                    <Path Fill="{DynamicResource MouseButtonBrush}" Stroke="{DynamicResource MouseEdgeBrush}"
+                          StrokeThickness="1"
+                          Data="M 32,40 C 32,16 54,8 77,8 C 73,18 70,26 69,34 C 67,44 67,58 69,68 C 70,76 72,82 74,86 L 27,86 C 24.6,70 25.6,54 32,40 Z"/>
+                    <Path Fill="{DynamicResource MouseButtonBrush}" Stroke="{DynamicResource MouseEdgeBrush}"
+                          StrokeThickness="1"
+                          Data="M 128,40 C 128,16 106,8 83,8 C 87,18 90,26 91,34 C 93,44 93,58 91,68 C 90,76 88,82 86,86 L 133,86 C 135.4,70 134.4,54 128,40 Z"/>
+
+                    <Rectangle Canvas.Left="74" Canvas.Top="30" Width="12" Height="40"
+                               RadiusX="6" RadiusY="6"
+                               Fill="{DynamicResource MouseWheelBrush}" Stroke="{DynamicResource MouseEdgeBrush}"
+                               StrokeThickness="1"/>
+                    <Path Stroke="{DynamicResource MouseWheelAccentBrush}" StrokeThickness="1.4"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                          Data="M 76,42 L 84,42 M 76,57 L 84,57"/>
+
+                    <Rectangle Canvas.Left="18" Canvas.Top="112" Width="16" Height="26"
+                               RadiusX="5" RadiusY="5"
+                               Fill="{DynamicResource MouseSideButtonBrush}" Stroke="{DynamicResource MouseEdgeBrush}"
+                               StrokeThickness="1"/>
+                    <Rectangle Canvas.Left="18" Canvas.Top="146" Width="16" Height="26"
+                               RadiusX="5" RadiusY="5"
+                               Fill="{DynamicResource MouseSideButtonBrush}" Stroke="{DynamicResource MouseEdgeBrush}"
+                               StrokeThickness="1"/>
+
+                    <TextBlock Canvas.Left="33" Canvas.Top="36" Width="34"
+                               Text="{x:Static p:Strings.Click_Left}" Style="{StaticResource MouseInBodyName}"/>
+                    <Viewbox Canvas.Left="33" Canvas.Top="49" Width="34" Height="16"
+                             Stretch="Uniform" StretchDirection="DownOnly">
+                        <TextBlock Text="{Binding HistoryLeftClicks}" Style="{StaticResource MouseInBodyValue}"/>
+                    </Viewbox>
+                    <TextBlock Canvas.Left="93" Canvas.Top="36" Width="34"
+                               Text="{x:Static p:Strings.Click_Right}" Style="{StaticResource MouseInBodyName}"/>
+                    <Viewbox Canvas.Left="93" Canvas.Top="49" Width="34" Height="16"
+                             Stretch="Uniform" StretchDirection="DownOnly">
+                        <TextBlock Text="{Binding HistoryRightClicks}" Style="{StaticResource MouseInBodyValue}"/>
+                    </Viewbox>
+                </Canvas>
+            </Canvas>
+        </Viewbox>
+
+        <Viewbox Grid.Row="1" Margin="0,6,0,0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                 Stretch="Uniform" StretchDirection="DownOnly">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="4"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Background="{DynamicResource SubtleFillBrush}"
+                    BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0.5"
+                    CornerRadius="6" Padding="9,7">
+                <controls:StatItemControl Icon="&#xE8AB;" Title="{x:Static p:Strings.Stats_MouseDistance}"
+                                          Value="{Binding HistoryMouseDistance}"/>
+            </Border>
+            <Border Grid.Column="2" Background="{DynamicResource SubtleFillBrush}"
+                    BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0.5"
+                    CornerRadius="6" Padding="9,7">
+                <controls:StatItemControl Icon="&#xE74A;" Title="{x:Static p:Strings.Stats_ScrollDistance}"
+                                          Value="{Binding HistoryScrollDistance}"/>
+            </Border>
+        </Grid>
+        </Viewbox>
+    </Grid>
+</UserControl>
