@@ -53,7 +53,6 @@ public partial class SettingsWindow : Window
             App.CurrentApp.SyncCoordinator.StatusChanged += OnSyncStatusChanged;
         }
         RefreshSyncStatus();
-        App.CurrentApp?.TrackPageView("settings");
     }
 
     private void OnClosed(object? sender, System.EventArgs e)
@@ -122,19 +121,16 @@ public partial class SettingsWindow : Window
 
     private void OpenStats_Click(object sender, RoutedEventArgs e)
     {
-        App.CurrentApp?.TrackClick("open_stats_popup");
         App.CurrentApp?.ShowStatsPanel();
     }
 
     private void ImportData_Click(object sender, RoutedEventArgs e)
     {
-        App.CurrentApp?.TrackClick("import_data");
         App.CurrentApp?.ImportData();
     }
 
     private void SyncSettings_Click(object sender, RoutedEventArgs e)
     {
-        App.CurrentApp?.TrackClick("open_sync_settings");
         App.CurrentApp?.ShowSyncSettingsWindow();
     }
 
@@ -185,13 +181,11 @@ public partial class SettingsWindow : Window
 
     private void ExportData_Click(object sender, RoutedEventArgs e)
     {
-        App.CurrentApp?.TrackClick("export_data");
         App.CurrentApp?.ExportData();
     }
 
     private void NotificationSettings_Click(object sender, RoutedEventArgs e)
     {
-        App.CurrentApp?.TrackClick("open_notification_settings");
         App.CurrentApp?.ShowNotificationSettings();
     }
 
@@ -255,12 +249,6 @@ public partial class SettingsWindow : Window
             _isLoadingFloatingStats = false;
             return;
         }
-
-        App.CurrentApp?.TrackClick("settings_floating_stats_metric_change", new System.Collections.Generic.Dictionary<string, object?>
-        {
-            ["slot"] = isPrimary ? "primary" : "secondary",
-            ["metric"] = metricId
-        });
     }
 
     private void FloatingLayout_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -290,10 +278,6 @@ public partial class SettingsWindow : Window
         settings.FloatingStatsLayoutMode = layoutMode;
         StatsManager.Instance.SaveSettings();
         App.CurrentApp?.ApplyFloatingStatsBehaviorSettings();
-        App.CurrentApp?.TrackClick("settings_floating_stats_layout", new System.Collections.Generic.Dictionary<string, object?>
-        {
-            ["layout"] = layoutMode
-        });
     }
 
     private void FloatingStatsBehavior_Changed(object sender, RoutedEventArgs e)
@@ -308,15 +292,6 @@ public partial class SettingsWindow : Window
         settings.FloatingStatsPositionLocked = FloatingLockPositionCheckBox.IsChecked == true;
         StatsManager.Instance.SaveSettings();
         App.CurrentApp?.ApplyFloatingStatsBehaviorSettings();
-
-        var eventName = ReferenceEquals(sender, FloatingTopmostCheckBox)
-            ? "settings_floating_stats_topmost"
-            : "settings_floating_stats_position_lock";
-        var enabled = sender is CheckBox checkBox && checkBox.IsChecked == true;
-        App.CurrentApp?.TrackClick(eventName, new System.Collections.Generic.Dictionary<string, object?>
-        {
-            ["enabled"] = enabled
-        });
     }
 
     private void FloatingFontSize_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -335,10 +310,6 @@ public partial class SettingsWindow : Window
         settings.FloatingStatsFontSize = fontSize;
         StatsManager.Instance.SaveSettings();
         App.CurrentApp?.ApplyFloatingStatsBehaviorSettings();
-        App.CurrentApp?.TrackClick("settings_floating_stats_font_size", new System.Collections.Generic.Dictionary<string, object?>
-        {
-            ["font_size"] = fontSize
-        });
     }
 
     private bool _isLoadingHeatmapColorScheme = true;
@@ -400,10 +371,6 @@ public partial class SettingsWindow : Window
             ? Visibility.Visible
             : Visibility.Collapsed;
         HeatmapPalette.NotifySchemeChanged();
-        App.CurrentApp?.TrackClick("settings_heatmap_color_scheme", new System.Collections.Generic.Dictionary<string, object?>
-        {
-            ["scheme"] = scheme
-        });
     }
 
     private void HeatmapCustomLowColor_Click(object sender, RoutedEventArgs e)
@@ -447,21 +414,15 @@ public partial class SettingsWindow : Window
         // 刷新下拉项色条和色块
         LoadHeatmapColorSchemeControls();
         HeatmapPalette.NotifySchemeChanged();
-        App.CurrentApp?.TrackClick("settings_heatmap_custom_color", new System.Collections.Generic.Dictionary<string, object?>
-        {
-            ["slot"] = isLow ? "low" : "high"
-        });
     }
 
     private void MouseCalibration_Click(object sender, RoutedEventArgs e)
     {
-        App.CurrentApp?.TrackClick("open_mouse_calibration");
         App.CurrentApp?.ShowMouseCalibration();
     }
 
     private void MouseScrollCalibration_Click(object sender, RoutedEventArgs e)
     {
-        App.CurrentApp?.TrackClick("open_mouse_scroll_calibration");
         new MouseScrollCalibrationWindow { Owner = this }.ShowDialog();
     }
 
@@ -482,7 +443,6 @@ public partial class SettingsWindow : Window
 
     private async void CheckUpdate_Click(object sender, RoutedEventArgs e)
     {
-        App.CurrentApp?.TrackClick("check_update");
         UpdateStatusTextBlock.Text = string.Empty;
         UpdateStatusTextBlock.Visibility = Visibility.Collapsed;
         CheckUpdateButton.IsEnabled = false;
@@ -585,11 +545,6 @@ public partial class SettingsWindow : Window
 
         if (result == MessageBoxResult.OK)
         {
-            App.CurrentApp?.TrackClick("settings_language_change", new System.Collections.Generic.Dictionary<string, object?>
-            {
-                ["from"] = oldPref,
-                ["to"] = newPref,
-            });
             StatsManager.Instance.Settings.LanguagePreference = newPref!;
             // SaveSettings() is debounced (2s) — RestartApp would spawn the new
             // process before the disk write happens, so it would read the old
@@ -599,7 +554,6 @@ public partial class SettingsWindow : Window
         }
         else
         {
-            App.CurrentApp?.TrackClick("settings_language_change_cancelled");
             // User cancelled — revert ComboBox to the previously persisted value.
             _isInitializingLanguage = true;
             LanguageComboBox.SelectedItem = LanguageComboBox.Items

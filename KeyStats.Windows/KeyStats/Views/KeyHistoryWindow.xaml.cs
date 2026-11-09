@@ -36,7 +36,6 @@ public partial class KeyHistoryWindow : Window
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         ApplyWindowBackdrop();
-        App.CurrentApp?.TrackPageView("key_history");
     }
 
     private void OnThemeChanged()

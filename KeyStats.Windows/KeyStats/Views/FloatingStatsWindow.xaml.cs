@@ -82,13 +82,6 @@ public partial class FloatingStatsWindow : Window
         RestorePosition();
         RootBorder.ContextMenu = BuildContextMenu();
         _isLoaded = true;
-
-        App.CurrentApp?.TrackPageView("floating_stats", new Dictionary<string, object?>
-        {
-            ["primary_metric"] = _viewModel.PrimaryMetricId,
-            ["secondary_metric"] = _viewModel.SecondaryMetricId,
-            ["layout"] = StatsManager.Instance.Settings.FloatingStatsLayoutMode
-        });
     }
 
     private void OnClosed(object? sender, EventArgs e)
@@ -128,7 +121,6 @@ public partial class FloatingStatsWindow : Window
 
         if (e.ClickCount == 2)
         {
-            App.CurrentApp?.TrackClick("floating_stats_open_details");
             App.CurrentApp?.ShowMainWindow();
             e.Handled = true;
             return;
@@ -169,10 +161,6 @@ public partial class FloatingStatsWindow : Window
             settings.FloatingStatsPositionLocked = isLocked;
             StatsManager.Instance.SaveSettings();
             ApplyBehaviorSettings();
-            App.CurrentApp?.TrackClick("floating_stats_position_lock", new Dictionary<string, object?>
-            {
-                ["enabled"] = isLocked
-            });
         };
         menu.Items.Add(lockPositionItem);
 
@@ -182,7 +170,6 @@ public partial class FloatingStatsWindow : Window
         };
         hideItem.Click += (_, _) =>
         {
-            App.CurrentApp?.TrackClick("floating_stats_hide");
             App.CurrentApp?.SetFloatingStatsVisible(false);
         };
         menu.Items.Add(hideItem);
@@ -194,7 +181,6 @@ public partial class FloatingStatsWindow : Window
         };
         settingsItem.Click += (_, _) =>
         {
-            App.CurrentApp?.TrackClick("floating_stats_settings");
             App.CurrentApp?.ShowSettingsWindow();
         };
         menu.Items.Add(settingsItem);

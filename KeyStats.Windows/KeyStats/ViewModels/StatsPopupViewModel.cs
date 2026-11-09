@@ -161,17 +161,6 @@ public class StatsPopupViewModel : ViewModelBase
         {
             if (SetProperty(ref _selectedRangeIndex, value))
             {
-                App.CurrentApp?.TrackClick("chart_range", new Dictionary<string, object?>
-                {
-                    ["range"] = value switch
-                    {
-                        0 => "3d",
-                        1 => "7d",
-                        2 => "30d",
-                        3 => "all",
-                        _ => "unknown"
-                    }
-                });
                 UpdateQuery();
                 RequestRefresh(conditionsChanged: true);
             }
@@ -185,17 +174,6 @@ public class StatsPopupViewModel : ViewModelBase
         {
             if (SetProperty(ref _selectedMouseTotalsRangeIndex, value))
             {
-                App.CurrentApp?.TrackClick("mouse_totals_range", new Dictionary<string, object?>
-                {
-                    ["range"] = value switch
-                    {
-                        0 => "week",
-                        1 => "month",
-                        2 => "year",
-                        3 => "all",
-                        _ => "unknown"
-                    }
-                });
                 UpdateQuery();
                 RequestRefresh(conditionsChanged: true);
             }
@@ -209,17 +187,6 @@ public class StatsPopupViewModel : ViewModelBase
         {
             if (SetProperty(ref _selectedMetricIndex, value))
             {
-                App.CurrentApp?.TrackClick("chart_metric", new Dictionary<string, object?>
-                {
-                    ["metric"] = value switch
-                    {
-                        0 => "clicks",
-                        1 => "key_presses",
-                        2 => "mouse_distance",
-                        3 => "scroll_distance",
-                        _ => "unknown"
-                    }
-                });
                 UpdateQuery();
                 RequestRefresh(conditionsChanged: true);
             }
@@ -233,10 +200,6 @@ public class StatsPopupViewModel : ViewModelBase
         {
             if (SetProperty(ref _selectedChartStyleIndex, value))
             {
-                App.CurrentApp?.TrackClick("chart_style", new Dictionary<string, object?>
-                {
-                    ["style"] = value == 0 ? "line" : "bar"
-                });
                 UpdateQuery();
                 RequestRefresh(conditionsChanged: true);
             }
@@ -557,7 +520,6 @@ public class StatsPopupViewModel : ViewModelBase
 
     private void Quit()
     {
-        App.CurrentApp?.TrackClick("popup_quit");
         StatsManager.Instance.FlushPendingSave();
         InputMonitorService.Instance.StopMonitoring();
         Application.Current.Shutdown();

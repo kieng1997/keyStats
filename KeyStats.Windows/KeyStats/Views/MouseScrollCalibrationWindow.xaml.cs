@@ -22,7 +22,6 @@ public partial class MouseScrollCalibrationWindow : Window
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         ApplyWindowBackdrop();
-        App.CurrentApp?.TrackPageView("mouse_scroll_calibration");
     }
 
     private void OnClosed(object? sender, EventArgs e)
@@ -59,7 +58,6 @@ public partial class MouseScrollCalibrationWindow : Window
         if (!TryCalculatePpi(out var ppi)) return;
 
         StatsManager.Instance.UpdateMouseScrollPpi(ppi);
-        App.CurrentApp?.TrackClick("save_mouse_scroll_calibration");
         Close();
     }
 

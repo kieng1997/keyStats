@@ -69,7 +69,7 @@ Validate according to the change, not with a full regression every time. For syn
 2. `StatsManager` (singleton) subscribes to those events, updates today's totals, per-key counts, and per-app stats under a lock, and rolls over at local midnight. `ActiveWindowManager` supplies app attribution.
 3. Persistence is debounced: saves are coalesced (2 s) and UI notifications are debounced (300 ms). JSON lives in `%LOCALAPPDATA%\KeyStats\` (`daily_stats.json`, `history.json`, `settings.json`). `StatsChanged` subscribers marshal to the WPF Dispatcher before updating ViewModels/Views. The UI is light MVVM (Views + ViewModels, no MVVM framework); charts and heatmaps use native WPF rendering (Canvas / DrawingContext, no charting library).
 4. Optional sync: `SyncCoordinator` reads stats from `StatsManager`, canonicalizes and encrypts records (`SyncKeyCanonicalizer`, `SyncCrypto`), plans batches (`SyncBatchPlanner`), and sends them through `SyncTransport`. Device credentials are protected with DPAPI (`SyncCredentialStore`); local sync state/cache live in `sync_state.json` and `sync_cache.json`.
-5. `App.xaml.cs` is the composition root: single-instance mutex, theme, services, tray icon, windows, import/export. Its exit sequence flushes analytics, disposes the tray, stops the input monitor, disposes the sync coordinator, flushes/disposes `StatsManager`, disposes `ThemeManager`, then releases the mutex.
+5. `App.xaml.cs` is the composition root: single-instance mutex, theme, services, tray icon, windows, import/export. Its exit sequence disposes the tray, stops the input monitor, disposes the sync coordinator, flushes/disposes `StatsManager`, disposes `ThemeManager`, then releases the mutex.
 
 ## Windows implementation map
 
@@ -83,7 +83,8 @@ Validate according to the change, not with a full regression every time. For syn
 
 ### Privacy
 - Only store aggregate counts, distances, and app attribution. NEVER persist keystroke content, raw mouse paths, or clipboard data.
-- Secrets, device/vault IDs, key names, and counts are never analytics properties or log fields. Analytics is optional and gated by `AppSettings.AnalyticsEnabled`.
+- Secrets, device/vault IDs, key names, and counts are never log fields.
+- The app has no analytics, telemetry, or usage reporting. Do not reintroduce tracking events, tracking SDKs, or settings fields for them.
 
 ### Thread Safety
 - Low-level hook callbacks run on the hook thread: no file IO, serialization, or UI work — dispatch via the thread pool.
@@ -97,7 +98,7 @@ Validate according to the change, not with a full regression every time. For syn
 ### Platform & UI
 - This project disables `ImplicitUsings`; add explicit `using` directives.
 - Use the shared `WindowBackdropHelper` and theme resources (`App.xaml` / `ThemeManager`) for window materials: keep soft glass-card surfaces, thin separators, subtle shadows, 10–12pt radii, and runtime light/dark switching via dynamic resources. Prefer `AllowsTransparency="False"` with the DWM backdrop, and change shared resources rather than hardcoding per-window colors.
-- User-facing copy is Chinese-first. When adding a new page/window, emit matching `pageview` and `click` analytics events.
+- User-facing copy is Chinese-first.
 - Default to replying in Simplified Chinese, per `.github/instructions/instructions.md`.
 
 ## Sync Service

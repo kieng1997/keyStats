@@ -32,7 +32,6 @@ public partial class SyncSettingsWindow : Window
         ApplyWindowBackdrop();
         if (Coordinator != null) Coordinator.StatusChanged += OnCoordinatorStatusChanged;
         RestorePendingPairingContext();
-        App.CurrentApp?.TrackPageView("sync_settings");
         RefreshStatus();
     }
 
@@ -260,7 +259,6 @@ public partial class SyncSettingsWindow : Window
 
     private async void CreateVault_Click(object sender, RoutedEventArgs e)
     {
-        App.CurrentApp?.TrackClick("sync_create");
         await RunUiAction(async coordinator =>
         {
             var recoveryCode = await coordinator.CreateVaultAsync(SetupDeviceNameTextBox.Text);
@@ -273,7 +271,6 @@ public partial class SyncSettingsWindow : Window
 
     private async void Recover_Click(object sender, RoutedEventArgs e)
     {
-        App.CurrentApp?.TrackClick("sync_recover");
         await RunUiAction(async coordinator =>
         {
             try
@@ -291,7 +288,6 @@ public partial class SyncSettingsWindow : Window
 
     private async void BeginPairing_Click(object sender, RoutedEventArgs e)
     {
-        App.CurrentApp?.TrackClick("sync_pair_start");
         await RunUiAction(async coordinator =>
         {
             _pairingContext = await coordinator.BeginPairingAsync(SetupDeviceNameTextBox.Text);
@@ -305,7 +301,6 @@ public partial class SyncSettingsWindow : Window
     private async void CompletePairing_Click(object sender, RoutedEventArgs e)
     {
         if (_pairingContext == null) return;
-        App.CurrentApp?.TrackClick("sync_pair_complete");
         await RunUiAction(async coordinator =>
         {
             var preview = await coordinator.PreviewPairingCompletionAsync(_pairingContext);
@@ -324,7 +319,6 @@ public partial class SyncSettingsWindow : Window
 
     private async void ApprovePairing_Click(object sender, RoutedEventArgs e)
     {
-        App.CurrentApp?.TrackClick("sync_pair_approve");
         await RunUiAction(async coordinator =>
         {
             var approval = await coordinator.JoinPairingAsync(ApproveCodeTextBox.Text);
@@ -346,7 +340,6 @@ public partial class SyncSettingsWindow : Window
     private async void SyncNow_Click(object sender, RoutedEventArgs e)
     {
         var retryBootstrap = Coordinator?.GetStatus().CanRetryBootstrap == true;
-        App.CurrentApp?.TrackClick(retryBootstrap ? "sync_bootstrap_retry" : "sync_manual");
         await RunUiAction(async coordinator =>
         {
             try
@@ -379,7 +372,6 @@ public partial class SyncSettingsWindow : Window
         var confirmed = MessageBox.Show(this, KeyStats.Properties.Strings.Sync_LeaveConfirm,
             KeyStats.Properties.Strings.Sync_WindowTitle, MessageBoxButton.OKCancel, MessageBoxImage.Warning);
         if (confirmed != MessageBoxResult.OK) return;
-        App.CurrentApp?.TrackClick("sync_leave");
         await RunUiAction(coordinator => coordinator.LeaveSyncAsync());
     }
 
@@ -388,7 +380,6 @@ public partial class SyncSettingsWindow : Window
         var confirmed = MessageBox.Show(this, KeyStats.Properties.Strings.Sync_ClearRepairConfirm,
             KeyStats.Properties.Strings.Sync_WindowTitle, MessageBoxButton.OKCancel, MessageBoxImage.Warning);
         if (confirmed != MessageBoxResult.OK) return;
-        App.CurrentApp?.TrackClick("sync_forget_local");
         await RunUiAction(async coordinator =>
         {
             await coordinator.ClearLocalSyncConfigurationAsync();
@@ -404,7 +395,6 @@ public partial class SyncSettingsWindow : Window
         var confirmed = MessageBox.Show(this, KeyStats.Properties.Strings.Sync_DeleteVaultConfirm,
             KeyStats.Properties.Strings.Sync_WindowTitle, MessageBoxButton.OKCancel, MessageBoxImage.Warning);
         if (confirmed != MessageBoxResult.OK) return;
-        App.CurrentApp?.TrackClick("sync_delete");
         await RunUiAction(coordinator => coordinator.DeleteVaultAsync());
     }
 
@@ -420,7 +410,6 @@ public partial class SyncSettingsWindow : Window
             MessageBoxButton.OKCancel,
             MessageBoxImage.Warning);
         if (confirmed != MessageBoxResult.OK) return;
-        App.CurrentApp?.TrackClick("sync_revoke");
         await RunUiAction(coordinator => coordinator.RevokeDeviceAsync(deviceId));
     }
 

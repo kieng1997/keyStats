@@ -34,24 +34,6 @@ public class AppSettings
     [JsonPropertyName("launchAtStartup")]
     public bool LaunchAtStartup { get; set; }
 
-    [JsonPropertyName("analyticsEnabled")]
-    public bool AnalyticsEnabled { get; set; } = true;
-
-    [JsonPropertyName("analyticsApiKey")]
-    public string? AnalyticsApiKey { get; set; } = "phc_TYyyKIfGgL1CXZx7t9dY7igE3yNwNpjj9aqItSpNVLx";
-
-    [JsonPropertyName("analyticsHost")]
-    public string? AnalyticsHost { get; set; }
-
-    [JsonPropertyName("analyticsDistinctId")]
-    public string? AnalyticsDistinctId { get; set; }
-
-    [JsonPropertyName("analyticsFirstOpenUtc")]
-    public DateTime? AnalyticsFirstOpenUtc { get; set; }
-
-    [JsonPropertyName("analyticsInstallTracked")]
-    public bool AnalyticsInstallTracked { get; set; }
-
     [JsonPropertyName("mouseMetersPerPixel")]
     public double MouseMetersPerPixel { get; set; } = DefaultMouseMetersPerPixel;
 

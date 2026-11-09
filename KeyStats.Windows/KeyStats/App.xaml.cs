@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
@@ -16,8 +15,6 @@ using KeyStats.Helpers;
 using KeyStats.Services;
 using KeyStats.ViewModels;
 using KeyStats.Views;
-using DotPostHog;
-using DotPostHog.Model;
 using Microsoft.Toolkit.Uwp.Notifications;
 using Microsoft.Win32;
 using Forms = System.Windows.Forms;
@@ -45,7 +42,6 @@ public partial class App : System.Windows.Application
     private DispatcherTimer? _floatingStatsVisibilityTimer;
     private System.Threading.Mutex? _singleInstanceMutex;
     private string? _appVersion;
-    private IPostHogAnalytics? _postHogClient;
     private SyncCoordinator? _syncCoordinator;
     private long _lastResumeRecoveryTicks;
     private bool _isFloatingStatsHiddenForFullscreen;
@@ -124,7 +120,6 @@ public partial class App : System.Windows.Application
                 syncServiceUri,
                 _appVersion);
             _syncCoordinator.Start();
-            InitializeAnalytics(statsManager);
             InputMonitorService.Instance.StartMonitoring();
 
             Console.WriteLine("Creating tray icon...");
@@ -164,7 +159,6 @@ public partial class App : System.Windows.Application
         var openMainWindowItem = new System.Windows.Controls.MenuItem { Header = KeyStats.Properties.Strings.Tray_OpenMainWindow };
         openMainWindowItem.Click += (s, e) =>
         {
-            TrackClick("context_menu_open_main_window");
             _trayIconViewModel?.ShowMainWindow();
         };
         menu.Items.Add(openMainWindowItem);
@@ -178,10 +172,6 @@ public partial class App : System.Windows.Application
         _floatingStatsMenuItem.Click += (s, e) =>
         {
             var menuItem = (System.Windows.Controls.MenuItem)s!;
-            TrackClick("context_menu_floating_stats", new Dictionary<string, object?>
-            {
-                ["enabled"] = menuItem.IsChecked
-            });
             SetFloatingStatsVisible(menuItem.IsChecked);
         };
         menu.Items.Add(_floatingStatsMenuItem);
@@ -189,7 +179,6 @@ public partial class App : System.Windows.Application
         var settingsItem = new System.Windows.Controls.MenuItem { Header = KeyStats.Properties.Strings.Tray_Settings };
         settingsItem.Click += (s, e) =>
         {
-            TrackClick("context_menu_settings");
             ShowSettingsWindow();
         };
         menu.Items.Add(settingsItem);
@@ -203,10 +192,6 @@ public partial class App : System.Windows.Application
         startupItem.Click += (s, e) =>
         {
             var menuItem = (System.Windows.Controls.MenuItem)s!;
-            TrackClick("context_menu_startup", new Dictionary<string, object?>
-            {
-                ["enabled"] = menuItem.IsChecked
-            });
             try
             {
                 StartupManager.Instance.SetEnabled(menuItem.IsChecked);
@@ -226,7 +211,6 @@ public partial class App : System.Windows.Application
         var keyHistoryItem = new System.Windows.Controls.MenuItem { Header = KeyStats.Properties.Strings.Tray_KeyHistory };
         keyHistoryItem.Click += (s, e) =>
         {
-            TrackClick("context_menu_key_history");
             ShowKeyHistoryWindow();
         };
         menu.Items.Add(keyHistoryItem);
@@ -236,7 +220,6 @@ public partial class App : System.Windows.Application
         var quitItem = new System.Windows.Controls.MenuItem { Header = KeyStats.Properties.Strings.Tray_Quit };
         quitItem.Click += (s, e) =>
         {
-            TrackClick("context_menu_quit");
             _trayIconViewModel?.QuitCommand.Execute(null);
         };
         menu.Items.Add(quitItem);
@@ -639,7 +622,6 @@ public partial class App : System.Windows.Application
         {
             _trayIconViewModel.PropertyChanged -= OnTrayIconViewModelPropertyChanged;
         }
-        TrackAnalyticsExit();
         _trayContextMenuHost?.Dispose();
         _trayContextMenuHost = null;
         if (_trayIcon != null)
@@ -769,296 +751,8 @@ public partial class App : System.Windows.Application
     private static extern bool AllocConsole();
 #endif
 
-    private void InitializeAnalytics(StatsManager statsManager)
-    {
-        var settings = statsManager.Settings;
-        if (!settings.AnalyticsEnabled)
-        {
-            return;
-        }
-
-        var apiKey = settings.AnalyticsApiKey;
-        if (string.IsNullOrWhiteSpace(apiKey))
-        {
-            return;
-        }
-
-        var host = string.IsNullOrWhiteSpace(settings.AnalyticsHost)
-            ? "https://app.posthog.com"
-            : settings.AnalyticsHost!.TrimEnd('/');
-
-        try
-        {
-            // 使用 DotPostHog 创建分析客户端
-            // DotPostHog 支持 .NET Framework 4.8
-            _postHogClient = PostHogAnalytics.Create(
-                publicApiKey: apiKey,
-                host: host
-            );
-
-            var updated = false;
-            if (string.IsNullOrWhiteSpace(settings.AnalyticsDistinctId))
-            {
-                settings.AnalyticsDistinctId = Guid.NewGuid().ToString("N");
-                updated = true;
-            }
-
-            if (settings.AnalyticsFirstOpenUtc == null)
-            {
-                settings.AnalyticsFirstOpenUtc = DateTime.UtcNow;
-                updated = true;
-            }
-
-            if (updated)
-            {
-                statsManager.SaveSettings();
-            }
-
-            // 使用 Identify 设置 distinctId
-            var distinctId = settings.AnalyticsDistinctId;
-            if (!string.IsNullOrWhiteSpace(distinctId))
-            {
-                try
-                {
-                    _postHogClient.Identify(distinctId, null);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Failed to identify user: {ex}");
-                }
-            }
-
-            if (!settings.AnalyticsInstallTracked)
-            {
-                CaptureEvent("app_install", statsManager, new Dictionary<string, object?>
-                {
-                    ["install_utc"] = settings.AnalyticsFirstOpenUtc?.ToString("o")
-                });
-                settings.AnalyticsInstallTracked = true;
-                statsManager.SaveSettings();
-            }
-
-            CaptureEvent("app_open", statsManager, null);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Failed to initialize analytics: {ex}");
-            // 分析初始化失败不应阻止应用启动
-        }
-    }
-
-    private void CaptureEvent(string eventName, StatsManager statsManager, Dictionary<string, object?>? extraProperties)
-    {
-        if (_postHogClient == null)
-        {
-            return;
-        }
-
-        var distinctId = statsManager.Settings.AnalyticsDistinctId;
-        if (string.IsNullOrWhiteSpace(distinctId))
-        {
-            return;
-        }
-
-        var baseProperties = BuildBaseProperties(statsManager.Settings);
-        // 将 distinctId 加到属性中，因为 DotPostHog 的 Capture 可能不接受 distinctId 作为单独参数
-        // distinctId 已经通过上面的检查确保不为空
-        baseProperties["distinct_id"] = distinctId!;
-        
-        if (extraProperties != null)
-        {
-            foreach (var kvp in extraProperties)
-            {
-                if (kvp.Value != null)
-                {
-                    baseProperties[kvp.Key] = kvp.Value;
-                }
-            }
-        }
-
-        try
-        {
-            // 将 Dictionary 转换为 PostHogEventProperties
-            var postHogProperties = new PostHogEventProperties();
-            foreach (var kvp in baseProperties)
-            {
-                postHogProperties[kvp.Key] = kvp.Value;
-            }
-
-            // DotPostHog 的 Capture 方法可能只接受事件名和属性
-            // distinctId 通过 Identify 方法设置，或作为属性传递
-            _postHogClient.Capture(
-                eventName,
-                postHogProperties
-            );
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Failed to capture event {eventName}: {ex}");
-            // 事件发送失败不应影响应用运行
-        }
-    }
-
-    private Dictionary<string, object> BuildBaseProperties(Models.AppSettings settings)
-    {
-        var appVersion = _appVersion ?? "0.0.0";
-        var osVersion = Environment.OSVersion.Version;
-        var (windowsName, windowsBuild) = GetWindowsVersionInfo(osVersion);
-        var properties = new Dictionary<string, object>
-        {
-            ["app_name"] = "KeyStats",
-            ["app_version"] = appVersion,
-            ["app_build"] = appVersion,
-            ["platform"] = "windows",
-            ["os"] = "Windows",
-            ["os_major_version"] = windowsName,
-            ["os_version"] = $"{osVersion.Major}.{osVersion.Minor}.{osVersion.Build}",
-            ["$app_name"] = "KeyStats",
-            ["$app_version"] = appVersion,
-            ["$os"] = "Windows",
-            ["$os_version"] = windowsName,
-            ["os_build"] = windowsBuild,
-            ["dotnet_version"] = System.Environment.Version.ToString(),
-            ["locale"] = CultureInfo.CurrentUICulture.Name
-        };
-
-        if (settings.AnalyticsFirstOpenUtc.HasValue)
-        {
-            properties["first_open_utc"] = settings.AnalyticsFirstOpenUtc.Value.ToString("o");
-        }
-
-        // DotPostHog 可能不支持 $set_once，但保留属性结构以便将来使用
-        properties["$set_once"] = new Dictionary<string, object>
-        {
-            ["first_open_utc"] = settings.AnalyticsFirstOpenUtc?.ToString("o") ?? string.Empty,
-            ["install_utc"] = settings.AnalyticsFirstOpenUtc?.ToString("o") ?? string.Empty
-        };
-
-        return properties;
-    }
-
-    private static (string Name, string Build) GetWindowsVersionInfo(Version version)
-    {
-        var build = version.Build;
-        var buildString = build.ToString();
-
-        // Windows 11: Build 22000+
-        // Windows 10: Build 10240-21999
-        // Windows 8.1: Build 9600
-        // Windows 8: Build 9200
-        // Windows 7: Build 7600/7601
-        string name;
-        if (build >= 22000)
-        {
-            name = "Windows 11";
-        }
-        else if (build >= 10240)
-        {
-            name = "Windows 10";
-        }
-        else if (build >= 9600)
-        {
-            name = "Windows 8.1";
-        }
-        else if (build >= 9200)
-        {
-            name = "Windows 8";
-        }
-        else if (build >= 7600)
-        {
-            name = "Windows 7";
-        }
-        else
-        {
-            name = $"Windows (Build {build})";
-        }
-
-        return (name, buildString);
-    }
-
-    private void TrackAnalyticsExit()
-    {
-        if (_postHogClient == null)
-        {
-            return;
-        }
-
-        try
-        {
-            var statsManager = StatsManager.Instance;
-            CaptureEvent("app_exit", statsManager, null);
-
-            // DotPostHog 需要调用 Flush() 确保所有事件都被发送
-            _postHogClient.Flush();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Failed to track exit analytics: {ex}");
-        }
-    }
-
     /// <summary>
-    /// 追踪页面浏览事件
-    /// </summary>
-    public void TrackPageView(string pageName, Dictionary<string, object?>? extraProperties = null)
-    {
-        if (_postHogClient == null)
-        {
-            return;
-        }
-
-        var statsManager = StatsManager.Instance;
-        var properties = new Dictionary<string, object?>
-        {
-            ["page_name"] = pageName
-        };
-
-        if (extraProperties != null)
-        {
-            foreach (var kvp in extraProperties)
-            {
-                if (kvp.Value != null)
-                {
-                    properties[kvp.Key] = kvp.Value;
-                }
-            }
-        }
-
-        CaptureEvent("pageview", statsManager, properties);
-    }
-
-    /// <summary>
-    /// 追踪点击事件
-    /// </summary>
-    public void TrackClick(string elementName, Dictionary<string, object?>? extraProperties = null)
-    {
-        if (_postHogClient == null)
-        {
-            return;
-        }
-
-        var statsManager = StatsManager.Instance;
-        var properties = new Dictionary<string, object?>
-        {
-            ["element_name"] = elementName
-        };
-
-        if (extraProperties != null)
-        {
-            foreach (var kvp in extraProperties)
-            {
-                if (kvp.Value != null)
-                {
-                    properties[kvp.Key] = kvp.Value;
-                }
-            }
-        }
-
-        CaptureEvent("click", statsManager, properties);
-    }
-
-    /// <summary>
-    /// 获取 App 实例（用于其他类调用追踪方法）
+    /// 获取当前 App 实例
     /// </summary>
     public static App? CurrentApp => Current as App;
     public SyncCoordinator? SyncCoordinator => _syncCoordinator;
@@ -1271,17 +965,6 @@ public partial class App : System.Windows.Application
         }
 
         Console.WriteLine("Tray icon left click fired - showing stats");
-        Task.Run(() =>
-        {
-            try
-            {
-                TrackClick("tray_icon");
-            }
-            catch
-            {
-                // Ignore analytics failures.
-            }
-        });
         var anchorPoint = Forms.Control.MousePosition;
         Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
         {

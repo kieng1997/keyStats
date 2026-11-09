@@ -362,8 +362,7 @@ public sealed class StatsSaveConcurrencyTests
                 KeyHistoryWindowWidth = 456,
                 MouseDistanceUnit = "px",
                 LanguagePreference = "zh-Hans",
-                FloatingStatsFontSize = 18,
-                AnalyticsFirstOpenUtc = new DateTime(2026, 5, 1, 2, 3, 4, DateTimeKind.Utc)
+                FloatingStatsFontSize = 18
             };
             SetField(harness.Manager, "<Settings>k__BackingField", settings);
 
@@ -380,7 +379,6 @@ public sealed class StatsSaveConcurrencyTests
             Assert.AreEqual("px", deserialized.MouseDistanceUnit);
             Assert.AreEqual("zh-Hans", deserialized.LanguagePreference);
             Assert.AreEqual(18, deserialized.FloatingStatsFontSize);
-            Assert.AreEqual(new DateTime(2026, 5, 1, 2, 3, 4, DateTimeKind.Utc), deserialized.AnalyticsFirstOpenUtc);
 
             // The snapshot is taken after the gate, so a queued settings save writes the newest
             // values and cannot be overtaken by an older snapshot.

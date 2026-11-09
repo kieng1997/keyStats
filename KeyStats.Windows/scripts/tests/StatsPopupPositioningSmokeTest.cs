@@ -137,6 +137,5 @@ namespace KeyStats
     internal sealed class App
     {
         public static App? CurrentApp => null;
-        public void TrackPageView(string page) { }
     }
 }

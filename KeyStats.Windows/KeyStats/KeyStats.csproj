@@ -31,8 +31,6 @@
     <!-- System.Text.Json 需要单独安装包才能在 .NET Framework 4.8 中使用 -->
     <!-- 升级到 8.0.5 以修复 CVE-2024-30105 和 CVE-2024-43485 安全漏洞 -->
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
-    <!-- 使用 DotPostHog 社区库以支持 .NET Framework 4.8 -->
-    <PackageReference Include="DotPostHog" Version="2.0.0-preview5" />
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
   </ItemGroup>
 

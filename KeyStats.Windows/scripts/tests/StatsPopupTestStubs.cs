@@ -184,9 +184,6 @@ namespace KeyStats
     internal sealed class App
     {
         public static App? CurrentApp => null;
-        public void TrackClick(string elementName) { }
-        public void TrackClick(string elementName, Dictionary<string, object?>? extra) { }
-        public void TrackPageView(string page) { }
     }
 }
 

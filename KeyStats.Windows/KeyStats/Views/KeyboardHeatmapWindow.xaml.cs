@@ -137,7 +137,6 @@ public partial class KeyboardHeatmapWindow : Window
     {
         ApplyWindowBackdrop();
         RequestRefresh();
-        App.CurrentApp?.TrackPageView("keyboard_heatmap");
     }
 
     private void OnClosed(object? sender, EventArgs e)
@@ -335,10 +334,6 @@ public partial class KeyboardHeatmapWindow : Window
 
         DatePickerPopup.IsOpen = false;
         _pendingTransition = null;
-        App.CurrentApp?.TrackClick("keyboard_heatmap_range", new Dictionary<string, object?>
-        {
-            ["range"] = tag
-        });
         RequestRefresh(conditionsChanged: true);
     }
 
@@ -352,10 +347,6 @@ public partial class KeyboardHeatmapWindow : Window
 
         _selectedMode = mode;
         _pendingTransition = null;
-        App.CurrentApp?.TrackClick("keyboard_heatmap_mode", new Dictionary<string, object?>
-        {
-            ["mode"] = tag
-        });
         RequestRefresh(conditionsChanged: true);
     }
 
@@ -407,10 +398,6 @@ public partial class KeyboardHeatmapWindow : Window
         if (_suppressAppSelection || AppFilterComboBox.SelectedItem is not AppFilterOption option) return;
 
         _selectedAppName = option.AppName;
-        App.CurrentApp?.TrackClick("keyboard_heatmap_app_filter", new Dictionary<string, object?>
-        {
-            ["scope"] = _selectedAppName == null ? "all" : "app"
-        });
         RequestRefresh(conditionsChanged: true);
     }
 

@@ -36,7 +36,6 @@ public partial class AppStatsWindow : Window
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         ApplyWindowBackdrop();
-        App.CurrentApp?.TrackPageView("app_stats");
     }
 
     private void OnThemeChanged()

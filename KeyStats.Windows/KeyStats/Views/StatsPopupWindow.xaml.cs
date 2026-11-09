@@ -82,7 +82,6 @@ public partial class StatsPopupWindow : Window
         if (_isWindowMode)
         {
             RestoreWindowModeBounds();
-            App.CurrentApp?.TrackPageView("stats_popup");
         }
         else if (IsVisible && !_isHiding && !_allowClose)
         {
@@ -212,19 +211,16 @@ public partial class StatsPopupWindow : Window
 
     private void OpenAppStats_Click(object sender, RoutedEventArgs e)
     {
-        App.CurrentApp?.TrackClick("open_app_stats");
         App.CurrentApp?.ShowAppStatsWindow();
     }
 
     private void OpenKeyboardHeatmap_Click(object sender, RoutedEventArgs e)
     {
-        App.CurrentApp?.TrackClick("open_keyboard_heatmap");
         App.CurrentApp?.ShowKeyboardHeatmapWindow();
     }
 
     private void OpenKeyHistory_Click(object sender, RoutedEventArgs e)
     {
-        App.CurrentApp?.TrackClick("open_key_history");
         App.CurrentApp?.ShowKeyHistoryWindow();
     }
     
@@ -609,7 +605,6 @@ public partial class StatsPopupWindow : Window
 
         SlideIn();
         Activate();
-        App.CurrentApp?.TrackPageView("stats_popup");
     }
 
     public void CloseWindow(bool force)

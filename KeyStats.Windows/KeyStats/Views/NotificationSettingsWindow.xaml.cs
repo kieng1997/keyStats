@@ -40,7 +40,6 @@ public partial class NotificationSettingsWindow : Window
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         ApplyWindowBackdrop();
-        App.CurrentApp?.TrackPageView("notification_settings");
     }
 
     private void OnClosed(object? sender, System.EventArgs e)
