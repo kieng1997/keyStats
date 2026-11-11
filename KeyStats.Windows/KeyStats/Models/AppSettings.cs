@@ -125,6 +125,12 @@ public class AppSettings
     public string LanguagePreference { get; set; } = "system";  // "system" | "zh-Hans" | "zh-Hant" | "en"
 
     /// <summary>
+    /// Absolute local path of the desktop pet model folder. Null means no model chosen yet.
+    /// </summary>
+    [JsonPropertyName("desktopPetModelPath")]
+    public string? DesktopPetModelPath { get; set; }
+
+    /// <summary>
     /// Detached copy used when persisting settings: the fields are value types or immutable
     /// strings, so the clone serializes to exactly the same JSON as the live instance.
     /// </summary>

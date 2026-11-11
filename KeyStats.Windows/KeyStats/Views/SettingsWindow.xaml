@@ -110,7 +110,13 @@
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"
                            TextWrapping="Wrap"/>
 
-                <Grid Margin="0,10,0,0">
+                <!--
+                    The floating window now shows a Live2D desktop pet, so the metric, layout and
+                    font-size options no longer affect it. They stay in the file (collapsed and not
+                    hit-testable) so the existing settings load/save path keeps working unchanged.
+                -->
+                <Grid x:Name="FloatingStatsLayoutOptions" Margin="0,10,0,0"
+                      Visibility="Collapsed" IsHitTestVisible="False">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>

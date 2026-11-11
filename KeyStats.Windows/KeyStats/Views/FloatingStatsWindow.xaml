@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:p="clr-namespace:KeyStats.Properties"
         Title="{x:Static p:Strings.FloatingStats_WindowTitle}"
-        SizeToContent="Width"
-        Height="41"
+        Width="348"
+        Height="348"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -18,18 +18,42 @@
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType">
     <Border x:Name="RootBorder"
-            Background="{DynamicResource FloatingStatsSurfaceBrush}"
-            BorderBrush="{DynamicResource TrayPopupBorderBrush}"
-            BorderThickness="0.5"
-            CornerRadius="8"
+            Background="Transparent"
+            BorderBrush="Transparent"
+            BorderThickness="0"
             Cursor="SizeAll"
             SnapsToDevicePixels="True"
             MouseLeftButtonDown="RootBorder_MouseLeftButtonDown">
         <Grid>
-            <Grid x:Name="SingleRowLayout"
+            <!--
+                The desktop pet replaces the old statistics strip. The statistics grids below are
+                kept for reference but stay collapsed; their settings no longer apply.
+            -->
+            <Grid x:Name="DesktopPetHost" Margin="0"/>
+
+            <Button x:Name="ChooseModelButton"
+                    Panel.ZIndex="2"
+                    Visibility="Collapsed"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Padding="12,6"
+                    Content="选择模型"
+                    Click="ChooseModelButton_Click"/>
+
+            <TextBlock x:Name="DesktopPetErrorText"
+                       Panel.ZIndex="2"
+                       Visibility="Collapsed"
+                       Margin="12"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       FontSize="11"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+            <Grid x:Name="SingleRowLayout" Visibility="Collapsed" IsHitTestVisible="False"
                   Margin="4,1"
-                  HorizontalAlignment="Center"
-                  Visibility="Collapsed">
+                  HorizontalAlignment="Center">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="3"/>
@@ -68,7 +92,7 @@
                            ToolTip="{Binding SecondaryFullValue}"/>
             </Grid>
 
-            <Grid x:Name="DoubleRowLayout" Margin="4,1">
+            <Grid x:Name="DoubleRowLayout" Margin="4,1" Visibility="Collapsed" IsHitTestVisible="False">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="3"/>

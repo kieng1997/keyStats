@@ -9,6 +9,11 @@
     <Nullable>enable</Nullable>
     <!-- .NET Framework 不支持 ImplicitUsings，需要显式 using -->
     <ImplicitUsings>disable</ImplicitUsings>
+    <!--
+      Explicit AnyCPU: WebView2's build targets then copy the x86, x64 and arm64 native
+      WebView2Loader.dll into runtimes\<arch>\native instead of only the x86 one.
+    -->
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>Resources\Icons\app.ico</ApplicationIcon>
@@ -32,6 +37,7 @@
     <!-- 升级到 8.0.5 以修复 CVE-2024-30105 和 CVE-2024-43485 安全漏洞 -->
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3719.77" />
   </ItemGroup>
 
   <ItemGroup>
@@ -51,6 +57,17 @@
   <ItemGroup>
     <Resource Include="Resources\Icons\*.ico" />
     <EmbeddedResource Include="Resources\Icons\tray-icon.png" />
+  </ItemGroup>
+
+  <!--
+    The desktop pet viewer is a static offline page served from a restricted virtual host.
+    The vendor folder holds Live2D Cubism Components under their own licenses (see
+    Resources\DesktopPet\vendor\VERSION.txt); they are not MIT-licensed.
+  -->
+  <ItemGroup>
+    <Content Include="Resources\DesktopPet\**\*"
+             Exclude="Resources\DesktopPet\vendor-src\**\*"
+             CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

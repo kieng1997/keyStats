@@ -1,0 +1,19 @@
+﻿Cubism SDK for Web version: 5-r.5
+
+Files in this folder:
+  live2dcubismcore.min.js      Cubism Core (unmodified SDK file)
+    SHA256: 8741F739779B5D5210872BD3D7D99F0F1E56E6C87409E7D26D6BB4B80AA1EF47
+  framework.js                 CubismWebFramework bundle, built with esbuild
+    SHA256: 808EACADE93D9658758C0F8887F669DA7B691E37EA33DECDC79CFCD503F22352
+  shaders\                     Cubism WebGL shaders (unmodified SDK files)
+  LICENSE-Live2D-Core.md       Live2D Proprietary Software License (Core)
+  RedistributableFiles-Core.txt  Core files the license allows redistributing
+  LICENSE-Live2D-Framework.md  Live2D Open Software License (Framework, samples, shaders)
+
+These files are Live2D Cubism Components and are NOT covered by the KeyStats MIT license.
+  Core license:      https://www.live2d.com/eula/live2d-proprietary-software-license-agreement_en.html
+  Framework license: https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html
+
+The third-party desktop pet model is NOT part of this distribution and must be supplied by the user.
+
+Rebuild with: scripts/build-desktop-pet-vendor.ps1 -CubismSdk <path>
