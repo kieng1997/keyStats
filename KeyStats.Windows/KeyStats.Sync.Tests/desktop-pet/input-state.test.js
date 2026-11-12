@@ -174,3 +174,72 @@ test('repeating an identical frame reports no change', () => {
 
   assert.strictEqual(repeated.changed, false);
 });
+
+// Mirrors the real nailin keyboard package: left and right overlays are separate images.
+const KEYBOARD_MODEL = {
+  hands: [
+    { virtualKeys: [65], imageRelativePath: 'resources/left-keys/KeyA.png' },
+    { virtualKeys: [68], imageRelativePath: 'resources/left-keys/KeyD.png' },
+    { virtualKeys: [13], imageRelativePath: 'resources/right-keys/Return.png', isRightHand: true }
+  ]
+};
+
+test('left and right overlays resolve independently via isRightHand', () => {
+  const state = input.createInputState(KEYBOARD_MODEL, OPTS);
+
+  const both = state.applyInput({ keys: [65, 13], mouseX: 0.5, mouseY: 0.5 });
+  assert.strictEqual(both.handImage, 'resources/left-keys/KeyA.png');
+  assert.strictEqual(both.rightHandImage, 'resources/right-keys/Return.png');
+  assert.strictEqual(both.params[input.params.leftHandDown], 1);
+  assert.strictEqual(both.params[input.params.rightHandDown], 1);
+  assert.strictEqual(both.changed, true);
+
+  // D is pressed while A and Return are held: the newest left key wins, the right side is untouched.
+  const dPressed = state.applyInput({ keys: [65, 68, 13], mouseX: 0.5, mouseY: 0.5 });
+  assert.strictEqual(dPressed.handImage, 'resources/left-keys/KeyD.png');
+  assert.strictEqual(dPressed.rightHandImage, 'resources/right-keys/Return.png');
+  assert.strictEqual(dPressed.params[input.params.leftHandDown], 1);
+  assert.strictEqual(dPressed.params[input.params.rightHandDown], 1);
+
+  // Releasing D returns the left hand to A, which is still held.
+  const backToA = state.applyInput({ keys: [65, 13], mouseX: 0.5, mouseY: 0.5 });
+  assert.strictEqual(backToA.handImage, 'resources/left-keys/KeyA.png');
+  assert.strictEqual(backToA.rightHandImage, 'resources/right-keys/Return.png');
+
+  // Releasing A hides only the left overlay; the right one stays up.
+  const leftReleased = state.applyInput({ keys: [13], mouseX: 0.5, mouseY: 0.5 });
+  assert.strictEqual(leftReleased.handImage, null);
+  assert.strictEqual(leftReleased.params[input.params.leftHandDown], 0);
+  assert.strictEqual(leftReleased.rightHandImage, 'resources/right-keys/Return.png');
+  assert.strictEqual(leftReleased.params[input.params.rightHandDown], 1);
+
+  // Releasing the last key clears both sides.
+  const allReleased = state.applyInput({ keys: [], mouseX: 0.5, mouseY: 0.5 });
+  assert.strictEqual(allReleased.handImage, null);
+  assert.strictEqual(allReleased.rightHandImage, null);
+  assert.strictEqual(allReleased.params[input.params.leftHandDown], 0);
+  assert.strictEqual(allReleased.params[input.params.rightHandDown], 0);
+  assert.strictEqual(state.getState().activeHandIndex, -1);
+});
+
+test('a right-hand change reports changed even when the left hand is stable', () => {
+  const state = input.createInputState(KEYBOARD_MODEL, OPTS);
+  state.applyInput({ keys: [65], mouseX: 0.5, mouseY: 0.5 });
+
+  const withRight = state.applyInput({ keys: [65, 13], mouseX: 0.5, mouseY: 0.5 });
+
+  assert.strictEqual(withRight.changed, true);
+});
+
+test('a failed right-hand image falls back to the base hand on that side only', () => {
+  const state = input.createInputState(KEYBOARD_MODEL, {
+    loadedHandImages: { 'resources/right-keys/Return.png': false }
+  });
+
+  const result = state.applyInput({ keys: [65, 13], mouseX: 0.5, mouseY: 0.5 });
+
+  assert.strictEqual(result.handImage, 'resources/left-keys/KeyA.png');
+  assert.strictEqual(result.rightHandImage, null);
+  assert.strictEqual(result.params[input.params.leftHandDown], 1);
+  assert.strictEqual(result.params[input.params.rightHandDown], 0);
+});

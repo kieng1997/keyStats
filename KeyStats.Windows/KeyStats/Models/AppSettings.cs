@@ -131,6 +131,14 @@ public class AppSettings
     public string? DesktopPetModelPath { get; set; }
 
     /// <summary>
+    /// Id of the bundled desktop pet preset ("ds-standard", "nailin-keyboard"). Null means the
+    /// legacy custom path (or nothing) applies; preset ids are only ever matched against fixed
+    /// literals, never turned into paths from arbitrary settings strings.
+    /// </summary>
+    [JsonPropertyName("desktopPetPresetId")]
+    public string? DesktopPetPresetId { get; set; }
+
+    /// <summary>
     /// Detached copy used when persisting settings: the fields are value types or immutable
     /// strings, so the clone serializes to exactly the same JSON as the live instance.
     /// </summary>

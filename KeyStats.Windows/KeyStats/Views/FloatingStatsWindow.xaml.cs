@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -25,6 +26,16 @@ public partial class FloatingStatsWindow : Window
     private readonly Func<string?>? _chooseModelFolder;
     private bool _isLoaded;
     private bool _isRestoringPosition;
+
+    /// <summary>The preset actually loaded right now; drives the context-menu check marks.</summary>
+    private string? _activePresetId;
+
+    /// <summary>Bundled presets: fixed ids matched against settings, never built from setting text.</summary>
+    private static readonly (string Id, string Title)[] Presets =
+    {
+        ("ds-standard", "DS-标准模式"),
+        ("nailin-keyboard", "乃琳-键盘模型")
+    };
 
     /// <summary>Production entry point: reads and persists the live application settings.</summary>
     public FloatingStatsWindow()
@@ -126,7 +137,7 @@ public partial class FloatingStatsWindow : Window
     /// <summary>
     /// Asks for the extracted model folder. The Mver package root is the folder the user picks, so
     /// choosing a model file inside <c>img/standard/&lt;model&gt;</c> is never necessary and the
-    /// configured key overlays are found.
+    /// configured key overlays are found. An imported model clears the preset selection.
     /// </summary>
     private void ChooseModel()
     {
@@ -139,7 +150,15 @@ public partial class FloatingStatsWindow : Window
             return;
         }
 
-        ApplyDesktopPetModel(selectedFolder, persist: true);
+        if (!TryApplyDesktopPetModel(selectedFolder))
+        {
+            return;
+        }
+
+        _activePresetId = null;
+        _settings.DesktopPetPresetId = null;
+        _settings.DesktopPetModelPath = selectedFolder;
+        _saveSettings();
     }
 
     private string? ShowFolderPicker()
@@ -155,38 +174,91 @@ public partial class FloatingStatsWindow : Window
 
     private void LoadDesktopPetModel()
     {
-        var path = _settings.DesktopPetModelPath;
-        ApplyDesktopPetModel(path, persist: false);
+        // A valid preset id wins: bundled models ship with the app, so a moved program directory
+        // or a fresh machine still loads the same preset.
+        if (_settings.DesktopPetPresetId != null &&
+            TryApplyDesktopPetModel(ResolvePresetPath(_settings.DesktopPetPresetId)))
+        {
+            _activePresetId = _settings.DesktopPetPresetId;
+            return;
+        }
+
+        // No (valid) preset: keep the legacy custom path while it still loads.
+        if (_settings.DesktopPetModelPath != null && TryApplyDesktopPetModel(_settings.DesktopPetModelPath))
+        {
+            _activePresetId = null;
+            return;
+        }
+
+        // First launch or a lost model: fall back to the bundled DS preset without any picker.
+        if (TryApplyDesktopPetModel(ResolvePresetPath(Presets[0].Id)))
+        {
+            _activePresetId = Presets[0].Id;
+            return;
+        }
+
+        _activePresetId = null;
+        ShowDesktopPetChooser();
     }
 
-    private void ApplyDesktopPetModel(string? rootPath, bool persist)
+    private static string? ResolvePresetPath(string? presetId)
     {
-        if (string.IsNullOrWhiteSpace(rootPath))
+        if (string.IsNullOrWhiteSpace(presetId))
         {
-            ShowDesktopPetChooser();
-            return;
+            return null;
         }
 
-        if (!DesktopPetModelLoader.TryLoad(rootPath, out var package, out var error))
+        foreach (var preset in Presets)
         {
-            ShowDesktopPetError(error ?? "模型加载失败");
-            return;
-        }
-
-        if (persist)
-        {
-            var settings = _settings;
-            if (!string.Equals(settings.DesktopPetModelPath, package!.RootPath, StringComparison.Ordinal))
+            if (string.Equals(preset.Id, presetId, StringComparison.Ordinal))
             {
-                settings.DesktopPetModelPath = package.RootPath;
-                _saveSettings();
+                return Path.Combine(
+                    AppDomain.CurrentDomain.BaseDirectory,
+                    "Resources", "DesktopPet", "Models", preset.Id);
             }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Loads and shows a model, reporting success so callers only persist choices that actually
+    /// work. A blank path is a silent failure (no error page for the "nothing chosen yet" state).
+    /// </summary>
+    private bool TryApplyDesktopPetModel(string? rootPath)
+    {
+        string? error = null;
+        if (string.IsNullOrWhiteSpace(rootPath) ||
+            !DesktopPetModelLoader.TryLoad(rootPath, out var package, out error))
+        {
+            if (!string.IsNullOrWhiteSpace(rootPath))
+            {
+                ShowDesktopPetError(error ?? "模型加载失败");
+            }
+
+            return false;
         }
 
         DesktopPetErrorText.Visibility = Visibility.Collapsed;
         ChooseModelButton.Visibility = Visibility.Collapsed;
         _desktopPet.Visibility = Visibility.Visible;
         _desktopPet.LoadModel(package);
+        return true;
+    }
+
+    /// <summary>Selects a bundled preset; only a successful load persists the choice.</summary>
+    private void SelectPreset(string presetId)
+    {
+        var presetPath = ResolvePresetPath(presetId);
+        if (presetPath == null || !TryApplyDesktopPetModel(presetPath))
+        {
+            return;
+        }
+
+        _activePresetId = presetId;
+        _settings.DesktopPetPresetId = presetId;
+        _settings.DesktopPetModelPath = null;
+        _saveSettings();
     }
 
     private void ShowDesktopPetChooser()
@@ -256,13 +328,37 @@ public partial class FloatingStatsWindow : Window
         };
         menu.Items.Add(lockPositionItem);
 
-        var chooseModelItem = new MenuItem
+        // The two fixed presets are root-level leaf items: the production MenuItem template has
+        // no ItemsPresenter/Popup, so a nested submenu can never open (a real user entry blocker).
+        foreach (var preset in Presets)
         {
-            Header = "选择模型…"
-        };
-        chooseModelItem.Click += (_, _) => ChooseModel();
-        menu.Items.Add(chooseModelItem);
+            var presetItem = new MenuItem
+            {
+                Header = preset.Title,
+                IsCheckable = true,
+                Tag = preset.Id,
+                IsChecked = string.Equals(_activePresetId, preset.Id, StringComparison.Ordinal)
+            };
+            presetItem.Click += (_, _) =>
+            {
+                // Clicking the already-active preset must not unselect it.
+                if (!string.Equals(_activePresetId, preset.Id, StringComparison.Ordinal))
+                {
+                    SelectPreset(preset.Id);
+                }
 
+                presetItem.IsChecked = string.Equals(_activePresetId, preset.Id, StringComparison.Ordinal);
+                SyncPresetChecks(menu);
+            };
+            menu.Items.Add(presetItem);
+        }
+
+        var importItem = new MenuItem
+        {
+            Header = "导入其他模型…"
+        };
+        importItem.Click += (_, _) => ChooseModel();
+        menu.Items.Add(importItem);
         var hideItem = new MenuItem
         {
             Header = KeyStats.Properties.Strings.FloatingStats_Hide
@@ -286,9 +382,22 @@ public partial class FloatingStatsWindow : Window
         menu.Opened += (_, _) =>
         {
             lockPositionItem.IsChecked = _settings.FloatingStatsPositionLocked;
+            SyncPresetChecks(menu);
         };
 
         return menu;
+    }
+
+    /// <summary>Marks only the currently loaded preset; called when the menu opens and after a click.</summary>
+    private void SyncPresetChecks(System.Windows.Controls.ItemsControl itemsHost)
+    {
+        foreach (var item in itemsHost.Items)
+        {
+            if (item is MenuItem menuItem && menuItem.Tag is string presetId)
+            {
+                menuItem.IsChecked = string.Equals(presetId, _activePresetId, StringComparison.Ordinal);
+            }
+        }
     }
 
     private void UpdateDragCursor()

@@ -409,6 +409,81 @@ public sealed class DesktopPetModelLoaderTests
         StringAssert.Contains(error, "链接");
     }
 
+    [TestMethod]
+    public void BareModelWithJunctionedKeysFolder_IsRejected()
+    {
+        using var directory = new TestDirectory();
+        using var outside = new TestDirectory();
+        WriteBareKeyboardModel(directory.Path);
+
+        var keysFolder = Path.Combine(directory.Path, "resources", "left-keys");
+        if (!TryCreateJunction(keysFolder, outside.Path))
+        {
+            Assert.Inconclusive("Creating a directory junction is not permitted in this environment.");
+            return;
+        }
+
+        var loaded = DesktopPetModelLoader.TryLoad(directory.Path, out _, out var error);
+
+        Assert.IsFalse(loaded);
+        StringAssert.Contains(error, "链接");
+    }
+
+    [TestMethod]
+    public void BareModelWithJunctionedBackground_IsRejected()
+    {
+        using var directory = new TestDirectory();
+        using var outside = new TestDirectory();
+        // Root model only — no resources folder is pre-created, so the junction can take its
+        // place without touching any existing file.
+        Directory.CreateDirectory(Path.Combine(directory.Path, "tex"));
+        File.WriteAllText(Path.Combine(directory.Path, "solo.model3.json"), @"{
+  ""Version"": 3,
+  ""FileReferences"": {
+    ""Moc"": ""solo.moc3"",
+    ""Textures"": [""tex/texture_00.png""]
+  }
+}");
+        File.WriteAllBytes(Path.Combine(directory.Path, "solo.moc3"), BuildMoc3Header(6));
+        File.WriteAllBytes(Path.Combine(directory.Path, "tex", "texture_00.png"), new byte[] { 0x89, 0x50 });
+
+        Directory.CreateDirectory(outside.Path);
+        File.WriteAllBytes(Path.Combine(outside.Path, "background.png"), new byte[] { 0x89, 0x50 });
+
+        if (!TryCreateJunction(Path.Combine(directory.Path, "resources"), outside.Path))
+        {
+            Assert.Inconclusive("Creating a directory junction is not permitted in this environment.");
+            return;
+        }
+
+        var loaded = DesktopPetModelLoader.TryLoad(directory.Path, out _, out var error);
+
+        Assert.IsFalse(loaded);
+        StringAssert.Contains(error, "链接");
+    }
+
+    /// <summary>
+    /// Builds a minimal bare model with the fixed keyboard overlay layout: a real right-keys PNG,
+    /// while resources/left-keys is left absent so the test can replace that path with a junction.
+    /// </summary>
+    private static void WriteBareKeyboardModel(string root)
+    {
+        Directory.CreateDirectory(Path.Combine(root, "tex"));
+        Directory.CreateDirectory(Path.Combine(root, "resources", "right-keys"));
+        File.WriteAllText(Path.Combine(root, "solo.model3.json"), @"{
+  ""Version"": 3,
+  ""FileReferences"": {
+    ""Moc"": ""solo.moc3"",
+    ""Textures"": [""tex/texture_00.png""]
+  }
+}");
+        File.WriteAllBytes(Path.Combine(root, "solo.moc3"), BuildMoc3Header(6));
+        File.WriteAllBytes(Path.Combine(root, "tex", "texture_00.png"), new byte[] { 0x89, 0x50 });
+        File.WriteAllBytes(
+            Path.Combine(root, "resources", "right-keys", "KeyA.png"),
+            new byte[] { 0x89, 0x50 });
+    }
+
     private static void AssertRejectedWithoutThrowing(string rootPath, out string? error)
     {
         DesktopPetPackage? package = null;

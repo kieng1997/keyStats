@@ -259,7 +259,12 @@ public sealed class DesktopPetView : Grid, IDisposable
         var hands = new List<object>(package.Hands.Count);
         foreach (var hand in package.Hands)
         {
-            hands.Add(new { virtualKeys = hand.VirtualKeys, image = hand.ImageRelativePath });
+            hands.Add(new
+            {
+                virtualKeys = hand.VirtualKeys,
+                image = hand.ImageRelativePath,
+                isRightHand = hand.IsRightHand
+            });
         }
 
         var payload = new
@@ -269,6 +274,7 @@ public sealed class DesktopPetView : Grid, IDisposable
             baseUrl = Origin + ModelRoutePrefix,
             moc = package.MocRelativePath,
             textures = package.TextureRelativePaths,
+            background = package.BackgroundRelativePath,
             hands
         };
 
@@ -624,7 +630,9 @@ public sealed class DesktopPetView : Grid, IDisposable
             }
         }
 
-        return false;
+        // Only the one validated background path; never the whole resources folder.
+        return !string.IsNullOrEmpty(package.BackgroundRelativePath) &&
+               string.Equals(relativePath, package.BackgroundRelativePath, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

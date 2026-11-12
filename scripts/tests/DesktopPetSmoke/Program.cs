@@ -6,11 +6,15 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using System.Xml.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using KeyStats.Helpers;
 using KeyStats.Models;
 using KeyStats.Services;
 using KeyStats.Views;
@@ -54,6 +58,10 @@ namespace DesktopPetSmoke
         private static int _statsAfterHideFrame;
         private static long _readerCallsAtHide;
 
+        // Preset ids must stay in lockstep with the production window's fixed options.
+        private const string DsPresetId = "ds-standard";
+        private const string NailinPresetId = "nailin-keyboard";
+
         [STAThread]
         public static int Main(string[] args)
         {
@@ -63,15 +71,22 @@ namespace DesktopPetSmoke
             Log.Path = Path.Combine(_outDir, "desktop-pet-smoke.log");
             Log.Write("START outDir=" + _outDir + " model=" + _modelRoot);
 
-            var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-            app.DispatcherUnhandledException += (s, e) =>
-            {
-                Fail("unhandled dispatcher exception: " + e.Exception.GetType().Name + ": " + e.Exception.Message);
-                e.Handled = true;
-            };
-
+            Application app = null;
             try
             {
+                // Plain Application: no production KeyStats.App instance may ever be constructed
+                // or Run in the smoke. The trusted repository App.xaml's Application.Resources
+                // dictionary is parsed (XDocument -> XamlReader) into this app's Resources, so
+                // the REAL production styles/theme brushes are tested while OnStartup/OnExit and
+                // every real service stay out of the process entirely.
+                app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+                app.Resources.MergedDictionaries.Add(LoadProductionAppResources());
+                app.DispatcherUnhandledException += (s, e) =>
+                {
+                    Fail("unhandled dispatcher exception: " + e.Exception.GetType().Name + ": " + e.Exception.Message);
+                    e.Handled = true;
+                };
+
                 if (string.IsNullOrWhiteSpace(_modelRoot) || !Directory.Exists(_modelRoot))
                 {
                     Fail("model folder argument is required: " + (_modelRoot ?? "<null>"));
@@ -118,6 +133,85 @@ namespace DesktopPetSmoke
             return Finish(app, Failures.Count == 0 ? 0 : 1);
         }
 
+        /// <summary>
+        /// Loads the production App.xaml's Application.Resources into the plain smoke Application:
+        /// a trusted-repo XDocument extraction (namespace attributes copied, clr-namespace values
+        /// pinned to assembly=KeyStats, x:Class dropped) parsed by XamlReader with the production
+        /// component BaseUri. Styles/Converters/Brushes only — no events, no x:Shared, no external
+        /// Source — and no KeyStats.App instance is ever constructed.
+        /// </summary>
+        private static ResourceDictionary LoadProductionAppResources()
+        {
+            // bin/Debug/net48 -> up 6 levels reaches the repo root.
+            var repoRoot = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+                "..", "..", "..", "..", "..", ".."));
+            var appXamlPath = Path.Combine(repoRoot, "KeyStats.Windows", "KeyStats", "App.xaml");
+            Check("production App.xaml found at the harness-relative path", File.Exists(appXamlPath),
+                appXamlPath);
+
+            const string WpfNs = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+            var document = System.Xml.Linq.XDocument.Load(appXamlPath);
+            var resources = document.Root.Element(XName.Get("Application.Resources", WpfNs))
+                ?? throw new Exception("App.xaml has no Application.Resources element");
+            var dictionary = resources.Element(XName.Get("ResourceDictionary", WpfNs))
+                ?? throw new Exception("App.xaml Application.Resources has no ResourceDictionary");
+
+            foreach (var attribute in document.Root.Attributes())
+            {
+                if (attribute.Name.LocalName == "Class" && attribute.Name.NamespaceName ==
+                    "http://schemas.microsoft.com/winfx/2006/xaml") continue;
+                if (!attribute.IsNamespaceDeclaration)
+                {
+                    continue;
+                }
+
+                // Loose clr-namespace values only resolve in loose XamlReader when the assembly
+                // is pinned (the production compile injects it; the parser cannot guess it).
+                var value = attribute.Value;
+                if (value.StartsWith("clr-namespace:", StringComparison.Ordinal) &&
+                    !value.Contains(";assembly="))
+                {
+                    value += ";assembly=KeyStats";
+                }
+
+                dictionary.SetAttributeValue(attribute.Name, value);
+            }
+
+            // Namespace declarations alone do not re-bind descendant element names; those still
+            // carry the original loose clr-namespace and would serialize (and parse) un-pinned.
+            foreach (var element in dictionary.DescendantsAndSelf())
+            {
+                var namespaceName = element.Name.NamespaceName;
+                if (namespaceName.StartsWith("clr-namespace:", StringComparison.Ordinal) &&
+                    !namespaceName.Contains(";assembly="))
+                {
+                    element.Name = XName.Get(element.Name.LocalName, namespaceName + ";assembly=KeyStats");
+                }
+            }
+
+            // XDocument resolves character references into raw characters, and Parse(string)
+            // rejects raw non-ASCII text ("invalid character in given encoding"), so re-escape
+            // everything outside ASCII back into character references.
+            var xaml = new StringBuilder();
+            foreach (var character in dictionary.ToString())
+            {
+                if (character > 0x7E)
+                    xaml.Append("&#x").Append(((int)character).ToString("X4")).Append(';');
+                else
+                    xaml.Append(character);
+            }
+
+            var parsed = (ResourceDictionary)System.Windows.Markup.XamlReader.Parse(
+                xaml.ToString(),
+                new System.Windows.Markup.ParserContext
+                {
+                    BaseUri = new Uri("pack://application:,,,/KeyStats;component/App.xaml")
+                });
+            Check("production App.xaml resource dictionary parsed",
+                parsed != null && parsed.Count > 0, "entries=" + (parsed?.Count ?? 0));
+            return parsed;
+        }
+
         private static int Finish(Application app, int exitCode)
         {
             try { _driver?.Stop(); } catch { }
@@ -135,7 +229,7 @@ namespace DesktopPetSmoke
                 Log.Write("FAIL: " + failure);
             }
 
-            try { app.Shutdown(); } catch { }
+            try { app?.Shutdown(); } catch { }
 
             // The WebView2 browser process can outlive the WPF shutdown; the smoke must always
             // return a definite exit code rather than hang.
@@ -152,19 +246,19 @@ namespace DesktopPetSmoke
                 {
                     case 2:
                         HookPageObservers();
+                        CheckProductionMenuEntryVisible();
                         break;
                     case 6:
-                        // Empty state must offer a chooser, not a broken pet.
-                        Check("empty state shows chooser button",
+                        // First launch defaults to the bundled DS preset; no chooser, no picker.
+                        Check("first launch hides the chooser (bundled DS loads by default)",
                             _window.FindName("ChooseModelButton") is System.Windows.Controls.Button button &&
-                            button.Visibility == Visibility.Visible);
-                        ClickChooseModel();
+                            button.Visibility != Visibility.Visible);
                         break;
                     case 12:
-                        Check("settings persisted the chosen package root",
-                            string.Equals(_settings.DesktopPetModelPath, _modelRoot, StringComparison.OrdinalIgnoreCase));
-                        Check("settings file on disk has the model path",
-                            _settingsFile.ContainsText(_modelRoot));
+                        // The smoke does not pick a folder any more; nothing may auto-persist a path.
+                        Check("no model path auto-persisted on first launch",
+                            string.IsNullOrEmpty(_settings.DesktopPetModelPath),
+                            "path=" + (_settings.DesktopPetModelPath ?? "<null>"));
                         break;
                     case 16:
                         WaitForModelReady();
@@ -288,11 +382,109 @@ namespace DesktopPetSmoke
                         _input.Set(new int[0], ScreenCenterX(), ScreenCenterY());
                         break;
                     case 94:
+                        // Preset switch through the real context-menu items, not private calls.
+                        SelectPresetMenuItem("乃琳-键盘模型");
+                        break;
+                    case 98:
+                        Check("nailin preset saved as an id, not a path",
+                            string.Equals(_settings.DesktopPetPresetId, NailinPresetId, StringComparison.Ordinal) &&
+                            string.IsNullOrEmpty(_settings.DesktopPetModelPath),
+                            "preset=" + (_settings.DesktopPetPresetId ?? "<null>") +
+                            " path=" + (_settings.DesktopPetModelPath ?? "<null>"));
+                        Check("settings file on disk stores the preset id",
+                            _settingsFile.ContainsText("nailin-keyboard") &&
+                            !_settingsFile.ContainsText("Models\\\\"));
+                        break;
+                    case 102:
+                        WaitForNailinReady();
+                        break;
+                    case 106:
+                        Capture("shot-nailin-light.png");
+                        break;
+                    case 108:
+                        _backdrop.SetColor("#1B1F27");
+                        break;
+                    case 110:
+                        Capture("shot-nailin-dark.png", ExpectKeyboardPixel);
+                        _backdrop.SetColor("#F2F4F8");
+                        break;
+                    case 112:
+                        _input.Set(new[] { 65, 13 }, ScreenCenterX(), ScreenCenterY());
+                        break;
+                    case 115:
+                        ExpectBothHands(
+                            "A+Return both hands",
+                            "resources/left-keys/KeyA.png",
+                            "resources/right-keys/Return.png",
+                            1, 1);
+                        Capture("shot-nailin-hands.png");
+                        break;
+                    case 117:
+                        _input.Set(new[] { 65 }, ScreenCenterX(), ScreenCenterY());
+                        break;
+                    case 120:
+                        ExpectBothHands(
+                            "Return released recovers right only",
+                            "resources/left-keys/KeyA.png",
+                            null,
+                            1, 0);
+                        break;
+                    case 122:
+                        _input.Set(new int[0], ScreenCenterX(), ScreenCenterY());
+                        break;
+                    case 125:
+                        ExpectBothHands("all keys released recovers base", null, null, 0, 0);
+                        break;
+                    case 127:
+                        Check("menu checks follow the active preset",
+                            GetPresetMenuItemChecked("DS-标准模式") == false &&
+                            GetPresetMenuItemChecked("乃琳-键盘模型") == true,
+                            "ds=" + GetPresetMenuItemChecked("DS-标准模式") +
+                            " nailin=" + GetPresetMenuItemChecked("乃琳-键盘模型"));
+                        SelectPresetMenuItem("DS-标准模式");
+                        break;
+                    case 131:
+                        Check("switch back to DS persisted",
+                            string.Equals(_settings.DesktopPetPresetId, DsPresetId, StringComparison.Ordinal) &&
+                            string.IsNullOrEmpty(_settings.DesktopPetModelPath),
+                            "preset=" + (_settings.DesktopPetPresetId ?? "<null>"));
+                        break;
+                    case 135:
+                        // Nothing is held, so the base hand shows; the hands count proves which
+                        // model is serving stats (17 = DS, 60 = nailin).
+                        ExpectHand("DS model back after switch", null, 0);
+                        Check("DS hands loaded after switch back",
+                            LastStatsHands() == 17, "handsLoaded=" + LastStatsHands());
+                        // Restart the window from the persisted settings file to prove recovery.
+                        RestartWindowFromSettings();
+                        break;
+                    case 139:
+                        WaitForHandsLoaded(17, "recreated window restored DS from settings");
+                        Check("recreated window kept the preset id",
+                            string.Equals(_settings.DesktopPetPresetId, DsPresetId, StringComparison.Ordinal),
+                            "preset=" + (_settings.DesktopPetPresetId ?? "<null>"));
+                        SelectPresetMenuItem("乃琳-键盘模型");
+                        break;
+                    case 143:
+                        WaitForNailinReady();
+                        break;
+                    case 147:
+                        // Restart again: the recreated window must restore nailin from settings.
+                        RestartWindowFromSettings();
+                        break;
+                    case 151:
+                        WaitForHandsLoaded(60, "recreated window restored nailin from settings file");
+                        Check("recreated window preset id is nailin",
+                            string.Equals(_settings.DesktopPetPresetId, NailinPresetId, StringComparison.Ordinal),
+                            "preset=" + (_settings.DesktopPetPresetId ?? "<null>"));
+                        _input.Set(new int[0], ScreenCenterX(), ScreenCenterY());
+                        break;
+                    case 155:
                         // Probe an external origin and wait for the verdict before closing; the
                         // production handler must answer it locally with 403.
                         ProbeExternalOriginAsync();
                         break;
-                    case 96:
+                    case 157:
                         if (_externalProbeDone && _capturesPending == 0)
                         {
                             StopObservers();
@@ -306,7 +498,7 @@ namespace DesktopPetSmoke
                             _step--;
                         }
                         break;
-                    case 98:
+                    case 159:
                         Check("window closed cleanly", _windowClosed);
                         Check("no late input reads after close", _input.ReadCount == _input.ReadCountAtClose);
                         _driver.Stop();
@@ -324,9 +516,241 @@ namespace DesktopPetSmoke
             }
         }
 
+        /// <summary>
+        /// Verifies the two fixed preset entries are REAL user-visible entries of the production
+        /// context menu: opened, template-applied, laid out, enabled and on screen in the current
+        /// light theme. Raising Click events alone proves nothing about what a user can see.
+        /// </summary>
+        private static void CheckProductionMenuEntryVisible()
+        {
+            var menu = _window.FindName("RootBorder") is System.Windows.Controls.Border border
+                ? border.ContextMenu
+                : null;
+            Check("production context menu exists on RootBorder", menu != null);
+            if (menu == null) return;
+
+            menu.PlacementTarget = _window;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+            menu.IsOpen = true;
+            DoEvents();
+
+            Check("production context menu opens", menu.IsOpen);
+            foreach (var header in new[] { "DS-标准模式", "乃琳-键盘模型" })
+            {
+                var item = FindPresetMenuItem(header);
+                Check("preset entry in the ROOT menu: " + header, item != null);
+                if (item == null) continue;
+                item.ApplyTemplate();
+                _window.UpdateLayout();
+                DoEvents();
+                Check("preset entry visible in production template: " + header,
+                    item.IsVisible && item.IsEnabled && item.ActualWidth > 0 && item.ActualHeight > 0,
+                    "visible=" + item.IsVisible + " enabled=" + item.IsEnabled +
+                    " size=" + item.ActualWidth + "x" + item.ActualHeight);
+            }
+
+            CaptureMenu("shot-menu-light.png");
+            ApplySmokeTheme(dark: true);
+            _window.UpdateLayout();
+            DoEvents();
+            Check("preset entries still visible in dark theme",
+                AllPresetEntriesVisible(out var detail), detail);
+            CaptureMenu("shot-menu-dark.png");
+            ApplySmokeTheme(dark: false);
+            _window.UpdateLayout();
+            menu.IsOpen = false;
+            DoEvents();
+        }
+
+        private static bool AllPresetEntriesVisible(out string detail)
+        {
+            var ok = true;
+            var parts = new List<string>();
+            foreach (var header in new[] { "DS-标准模式", "乃琳-键盘模型" })
+            {
+                var item = FindPresetMenuItem(header);
+                var visible = item != null && item.IsVisible && item.IsEnabled &&
+                              item.ActualWidth > 0 && item.ActualHeight > 0;
+                ok &= visible;
+                parts.Add(header + " visible=" + (visible ? "true" : "false"));
+            }
+
+            detail = string.Join(", ", parts);
+            return ok;
+        }
+
+        /// <summary>
+        /// Switches theme through the same private ThemeManager seams the heatmap rendering smoke
+        /// uses: test-process resources only, never the OS setting or user preferences.
+        /// </summary>
+        private static void ApplySmokeTheme(bool dark)
+        {
+            var manager = ThemeManager.Instance;
+            typeof(ThemeManager)
+                .GetProperty("IsDarkTheme", System.Reflection.BindingFlags.Instance |
+                                              System.Reflection.BindingFlags.Public |
+                                              System.Reflection.BindingFlags.NonPublic)!
+                .GetSetMethod(true)!.Invoke(manager, new object[] { dark });
+            typeof(ThemeManager)
+                .GetMethod("ApplyTheme", System.Reflection.BindingFlags.Instance |
+                                         System.Reflection.BindingFlags.NonPublic)!
+                .Invoke(manager, null);
+            _window.UpdateLayout();
+            DoEvents();
+        }
+
+        /// <summary>Renders the open context menu itself to a PNG via WPF's own RTB.</summary>
+        private static void CaptureMenu(string name)
+        {
+            try
+            {
+                var menu = (_window.FindName("RootBorder") as System.Windows.Controls.Border)?.ContextMenu;
+                if (menu == null || !menu.IsOpen)
+                {
+                    Fail("menu capture " + name + ": menu not open");
+                    return;
+                }
+
+                _window.UpdateLayout();
+                DoEvents();
+                double width = menu.ActualWidth;
+                double height = menu.ActualHeight;
+                if (width < 1 || height < 1)
+                {
+                    Fail("menu capture " + name + ": menu has no rendered size " + width + "x" + height);
+                    return;
+                }
+
+                var rtb = new RenderTargetBitmap(
+                    (int)Math.Ceiling(width), (int)Math.Ceiling(height), 96, 96, PixelFormats.Pbgra32);
+                rtb.Render(menu);
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(rtb));
+                using var stream = File.Create(Path.Combine(_outDir, name));
+                encoder.Save(stream);
+                Log.Write("MENU SHOT " + name + " (" + (int)width + "x" + (int)height + ")");
+            }
+            catch (Exception exception)
+            {
+                Fail("menu capture " + name + ": " + exception.Message);
+            }
+        }
+
         private static int ScreenWidth()
         {
             return Forms.SystemInformation.VirtualScreen.Width;
+        }
+
+        /// <summary>Clicks a preset entry in the production root context menu by its Chinese header.</summary>
+        private static void SelectPresetMenuItem(string header)
+        {
+            var item = FindPresetMenuItem(header);
+            Check("preset menu item exists: " + header, item != null);
+            if (item == null) return;
+            // MenuItem has its own ClickEvent (it does not inherit ButtonBase); raising the button
+            // event would silently do nothing.
+            item.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.MenuItem.ClickEvent));
+            Log.Write("clicked preset " + header);
+        }
+
+        private static bool GetPresetMenuItemChecked(string header)
+        {
+            var item = FindPresetMenuItem(header);
+            return item != null && item.IsChecked;
+        }
+
+        private static System.Windows.Controls.MenuItem? FindPresetMenuItem(string header)
+        {
+            var menu = _window.FindName("RootBorder") is System.Windows.Controls.Border border
+                ? border.ContextMenu
+                : null;
+            if (menu == null) return null;
+            // The fixed presets are flattened root-level leaf items; a nested "模型" submenu
+            // would not render under the production MenuItem template (no ItemsPresenter).
+            foreach (var top in menu.Items)
+            {
+                if (top is System.Windows.Controls.MenuItem item &&
+                    string.Equals(item.Header as string, header, StringComparison.Ordinal))
+                {
+                    return item;
+                }
+            }
+
+            return null;
+        }
+
+        private static int LastStatsHands()
+        {
+            return _lastStats.HasValue && _lastStats.Value.TryGetProperty("handsLoaded", out var hands)
+                ? hands.GetInt32() : -1;
+        }
+
+        private static void WaitForNailinReady()
+        {
+            Check("nailin viewer reported a loaded model", LastStatsModelLoaded());
+            Check("all 60 nailin hand overlays preloaded", LastStatsHands() == 60,
+                "handsLoaded=" + LastStatsHands());
+        }
+
+        /// <summary>
+        /// Waits (bounded) for the recreated window's viewer to reach the expected overlay count;
+        /// a restart needs a fresh WebView2 boot before stats flow again.
+        /// </summary>
+        private static void WaitForHandsLoaded(int expected, string label)
+        {
+            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+            while (LastStatsHands() != expected && DateTime.UtcNow < deadline)
+            {
+                // Drive() runs on the dispatcher; blocking here would freeze it, so poll coarsely.
+                DoEvents();
+            }
+
+            Check(label + " (handsLoaded=" + expected + ")", LastStatsHands() == expected,
+                "handsLoaded=" + LastStatsHands() + " modelLoaded=" + LastStatsModelLoaded());
+        }
+
+        private static void DoEvents()
+        {
+            var frame = new DispatcherFrame();
+            Dispatcher.CurrentDispatcher.BeginInvoke(
+                DispatcherPriority.Background,
+                new Action(() => frame.Continue = false));
+            Dispatcher.PushFrame(frame);
+            Thread.Sleep(100);
+        }
+
+        private static bool LastStatsModelLoaded()
+        {
+            return _lastStats.HasValue && _lastStats.Value.TryGetProperty("modelLoaded", out var loaded) &&
+                   loaded.GetBoolean();
+        }
+
+        /// <summary>
+        /// Closes the window and rebuilds it from the persisted settings file, proving a restart
+        /// restores the chosen preset without any picker.
+        /// </summary>
+        private static void RestartWindowFromSettings()
+        {
+            StopObservers();
+            _window.Close();
+
+            // Reload exactly what a fresh process would read from disk.
+            _settings = _settingsFile.Reload();
+            _settingsFile.Current = _settings;
+            _settings.FloatingStatsLeft = 70;
+            _settings.FloatingStatsTop = 70;
+            _settings.FloatingStatsPositionLocked = true;
+            _input = new FakeInput();
+            _window = new FloatingStatsWindow(
+                _settings,
+                _settingsFile.Save,
+                Path.Combine(_outDir, "webview-profile"),
+                _input.ReadFrame,
+                () => _modelRoot);
+            _window.Owner = _backdrop;
+            _window.Show();
+            HookPageObservers();
+            Log.Write("RESTART window from settings file");
         }
 
         private static int ScreenCenterX() { var d = Forms.SystemInformation.VirtualScreen; return d.Left + d.Width / 2; }
@@ -349,6 +773,7 @@ namespace DesktopPetSmoke
             {
                 _core = webView.CoreWebView2;
                 if (_core == null) return;
+                _pollStopped = false; // a restart re-hooks after StopObservers; re-arm the poll
                 _core.WebMessageReceived += (s, e) =>
                 {
                     var raw = e.TryGetWebMessageAsString();
@@ -456,6 +881,39 @@ namespace DesktopPetSmoke
                 Math.Abs(parameters.GetProperty("ParamMouseLeftDown").GetDouble() - left) < 0.001);
             Check(label + ": ParamMouseRightDown",
                 Math.Abs(parameters.GetProperty("ParamMouseRightDown").GetDouble() - right) < 0.001);
+        }
+
+        private static void ExpectBothHands(
+            string label, string expectedLeftImage, string expectedRightImage,
+            int expectedLeftDown, int expectedRightDown)
+        {
+            var stats = _lastStats;
+            if (!stats.HasValue)
+            {
+                Fail(label + ": no stats received");
+                return;
+            }
+
+            var leftImage = stats.Value.GetProperty("handImage");
+            var actualLeft = leftImage.ValueKind == JsonValueKind.Null ? null : leftImage.GetString();
+            var rightImage = stats.Value.GetProperty("rightHandImage");
+            var actualRight = rightImage.ValueKind == JsonValueKind.Null ? null : rightImage.GetString();
+            var parameters = stats.Value.GetProperty("params");
+            var leftDown = parameters.GetProperty("CatParamLeftHandDown").GetDouble();
+            var rightDown = parameters.GetProperty("CatParamRightHandDown").GetDouble();
+
+            Check(label + ": left overlay",
+                string.Equals(actualLeft, expectedLeftImage, StringComparison.Ordinal),
+                "expected " + (expectedLeftImage ?? "<base>") + " got " + (actualLeft ?? "<base>"));
+            Check(label + ": right overlay",
+                string.Equals(actualRight, expectedRightImage, StringComparison.Ordinal),
+                "expected " + (expectedRightImage ?? "<base>") + " got " + (actualRight ?? "<base>"));
+            Check(label + ": CatParamLeftHandDown",
+                Math.Abs(leftDown - expectedLeftDown) < 0.001,
+                "expected " + expectedLeftDown + " got " + leftDown);
+            Check(label + ": CatParamRightHandDown",
+                Math.Abs(rightDown - expectedRightDown) < 0.001,
+                "expected " + expectedRightDown + " got " + rightDown);
         }
 
         private static void CheckMouseMapping(string label, double expectedX, double expectedY, double tolerance)
@@ -573,7 +1031,7 @@ namespace DesktopPetSmoke
 
         private static int _capturesPending;
 
-        private static async void Capture(string name)
+        private static async void Capture(string name, Action<System.Drawing.Bitmap>? verify = null)
         {
             _capturesPending++;
             try
@@ -591,12 +1049,27 @@ namespace DesktopPetSmoke
                 }
                 bitmap.Save(Path.Combine(_outDir, name), ImageFormat.Png);
                 Log.Write("SHOT " + name + " (off-screen WebView2 capture with synthetic background)");
+                verify?.Invoke(bitmap);
             }
             catch (Exception exception)
             {
                 Fail("capture " + name + ": " + exception.Message);
             }
             finally { _capturesPending--; }
+        }
+
+        /// <summary>
+        /// The nailin keyboard background must actually paint its keycaps. The sample point was
+        /// located by mapping the source PNG's keycap geometry through the rendered screenshots:
+        /// it sits deep inside a large keycap (source rgb 255,255,255), clear of the cat and the
+        /// hand overlays, so only a painted background can make it bright.
+        /// </summary>
+        private static void ExpectKeyboardPixel(System.Drawing.Bitmap bitmap)
+        {
+            var pixel = bitmap.GetPixel(310, 250);
+            Check("nailin keyboard background paints the keycap at (310,250)",
+                pixel.R > 220 && pixel.G > 220 && pixel.B > 220,
+                "rgb=" + pixel.R + "," + pixel.G + "," + pixel.B + " (need all >220)");
         }
 
         private static void Check(string label, bool condition, string detail = null)
@@ -729,8 +1202,17 @@ namespace DesktopPetSmoke
             if (!File.Exists(_path)) return false;
             // Compare the deserialized value: the raw JSON escapes Windows path separators.
             var reloaded = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(_path));
-            return reloaded != null &&
-                   string.Equals(reloaded.DesktopPetModelPath, text, StringComparison.OrdinalIgnoreCase);
+            return reloaded != null && (
+                string.Equals(reloaded.DesktopPetModelPath, text, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(reloaded.DesktopPetPresetId, text, StringComparison.Ordinal));
+        }
+
+        /// <summary>Reads the file from disk again, like a fresh process would.</summary>
+        public AppSettings Reload()
+        {
+            return File.Exists(_path)
+                ? JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(_path)) ?? new AppSettings()
+                : new AppSettings();
         }
     }
 

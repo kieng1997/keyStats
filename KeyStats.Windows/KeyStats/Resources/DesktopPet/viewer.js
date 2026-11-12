@@ -8,6 +8,8 @@
 
   var canvas = document.getElementById('stage');
   var overlayContainer = document.getElementById('overlays');
+  var backgroundElement = document.getElementById('background');
+  var backgroundImage = document.getElementById('background-image');
   var statusElement = document.getElementById('status');
 
   var model = null;
@@ -27,6 +29,7 @@
   var handLayers = new Map();
   var handImageStates = {};
   var currentHandImage = null;
+  var currentRightHandImage = null;
 
   var inputState = null;
   var pendingFrame = null;
@@ -120,8 +123,13 @@
       rafHandle = 0;
     }
     currentHandImage = null;
+    currentRightHandImage = null;
     handLayers = new Map();
     if (overlayContainer) overlayContainer.textContent = '';
+    if (backgroundElement) {
+      backgroundElement.hidden = true;
+      if (backgroundImage) backgroundImage.removeAttribute('src');
+    }
     for (var i = 0; i < textures.length; i++) {
       try { gl.deleteTexture(textures[i]); } catch (e) { /* context may already be gone */ }
     }
@@ -203,7 +211,8 @@
       try {
         preloaded = await Promise.all([
           preloadHandLayers(payload),
-          Promise.all((payload.textures || []).map(loadImage))
+          Promise.all((payload.textures || []).map(loadImage)),
+          payload.background ? loadImage(payload.background) : Promise.resolve(null)
         ]);
       } catch (preloadError) {
         if (generation !== loadGeneration) return;
@@ -215,6 +224,7 @@
       var handLayerSpecs = preloaded[0];
       var images = preloaded[1];
       if (images.length === 0) { fail('模型缺少贴图', hostLoadId); return; }
+      var backgroundLoaded = preloaded[2];
 
       window.CubismBundle.CubismFramework.startUp(new window.CubismBundle.Option());
       window.CubismBundle.CubismFramework.initialize();
@@ -248,18 +258,38 @@
 
       if (generation !== loadGeneration) return;
       commitHandLayers(handLayerSpecs);
+      // Only the current load may touch the shared background element; a superseded load returns
+      // above and never clears the newer model's keyboard.
+      if (backgroundElement && backgroundImage) {
+        if (backgroundLoaded) {
+          backgroundImage.src = backgroundLoaded.src;
+          backgroundElement.hidden = false;
+        } else {
+          backgroundElement.hidden = true;
+          backgroundImage.removeAttribute('src');
+        }
+      }
 
       // Model units, not screen pixels. Screen pixels only enter viewport and projection.
       modelMatrix = new window.CubismBundle.CubismModelMatrix(
         model.getCanvasWidth(),
         model.getCanvasHeight());
+      // A canvas wider than tall would overflow [-1,1] horizontally after the height-based fit
+      // (setHeight(2) is the constructor default), so wide models fit by width instead.
+      if (model.getCanvasWidth() > model.getCanvasHeight()) {
+        modelMatrix.setWidth(2);
+      }
       projection = new window.CubismBundle.CubismMatrix44();
       projection.scale(1, canvas.width / canvas.height);
 
       inputState = window.DesktopPetInput.createInputState(
         {
           hands: (payload.hands || []).map(function (spec) {
-            return { virtualKeys: spec.virtualKeys, imageRelativePath: spec.image };
+            return {
+              virtualKeys: spec.virtualKeys,
+              imageRelativePath: spec.image,
+              isRightHand: !!spec.isRightHand
+            };
           })
         },
         {
@@ -326,7 +356,7 @@
     var paramIds = window.DesktopPetInput.params;
     var ids = [paramIds.mouseX, paramIds.mouseY,
       paramIds.mouseLeftDown, paramIds.mouseRightDown,
-      paramIds.leftHandDown];
+      paramIds.leftHandDown, paramIds.rightHandDown];
     var values = {};
     for (var i = 0; i < ids.length; i++) {
       var handle = window.CubismBundle.CubismFramework.getIdManager().getId(ids[i]);
@@ -338,11 +368,12 @@
     return values;
   }
 
-  function setHandOverlay(imageRelativePath) {
-    if (imageRelativePath === currentHandImage) return;
-    currentHandImage = imageRelativePath;
+  function setHandOverlay(handImage, rightHandImage) {
+    if (handImage === currentHandImage && rightHandImage === currentRightHandImage) return;
+    currentHandImage = handImage;
+    currentRightHandImage = rightHandImage;
     handLayers.forEach(function (layer, path) {
-      layer.hidden = path !== imageRelativePath;
+      layer.hidden = path !== handImage && path !== rightHandImage;
     });
   }
 
@@ -355,7 +386,7 @@
       pendingFrame = null;
       var applied = inputState.applyInput(frame);
       applyParams(applied.params);
-      setHandOverlay(applied.handImage);
+      setHandOverlay(applied.handImage, applied.rightHandImage);
     }
 
     model.update();
@@ -431,6 +462,7 @@
           modelLoaded: !!model,
           running: running,
           handImage: currentHandImage,
+          rightHandImage: currentRightHandImage,
           handsLoaded: handLayers.size,
           frame: frameCounter,
           input: inputState ? inputState.getState() : null,

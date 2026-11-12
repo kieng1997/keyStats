@@ -41,4 +41,38 @@ public sealed class DesktopPetSettingsTests
         Assert.AreEqual(@"D:\models\cat", reloaded!.DesktopPetModelPath);
         Assert.IsTrue(reloaded.FloatingStatsPositionLocked);
     }
+
+    [TestMethod]
+    public void LegacySettingsWithoutPresetId_LoadWithNullPreset()
+    {
+        const string legacyJson = @"{
+            ""desktopPetModelPath"": ""D:\\models\\cat"",
+            ""floatingStatsEnabled"": true
+        }";
+
+        var settings = JsonSerializer.Deserialize<AppSettings>(legacyJson);
+
+        Assert.IsNotNull(settings);
+        Assert.AreEqual(@"D:\models\cat", settings!.DesktopPetModelPath);
+        Assert.IsNull(settings.DesktopPetPresetId);
+    }
+
+    [TestMethod]
+    public void DesktopPetPresetId_SurvivesJsonRoundTrip()
+    {
+        var original = new AppSettings
+        {
+            DesktopPetPresetId = "nailin-keyboard",
+            FloatingStatsEnabled = true
+        };
+
+        var json = JsonSerializer.Serialize(original);
+        StringAssert.Contains(json, "\"desktopPetPresetId\":\"nailin-keyboard\"");
+
+        var reloaded = JsonSerializer.Deserialize<AppSettings>(json);
+
+        Assert.IsNotNull(reloaded);
+        Assert.AreEqual("nailin-keyboard", reloaded!.DesktopPetPresetId);
+        Assert.IsTrue(reloaded.FloatingStatsEnabled);
+    }
 }

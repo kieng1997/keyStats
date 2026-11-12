@@ -11,10 +11,11 @@ namespace KeyStats.Services;
 /// </summary>
 public sealed class DesktopPetHandOverlay
 {
-    public DesktopPetHandOverlay(IReadOnlyList<int> virtualKeys, string imageRelativePath)
+    public DesktopPetHandOverlay(IReadOnlyList<int> virtualKeys, string imageRelativePath, bool isRightHand = false)
     {
         VirtualKeys = virtualKeys;
         ImageRelativePath = imageRelativePath;
+        IsRightHand = isRightHand;
     }
 
     /// <summary>Virtual-key codes that activate this overlay; any one pressed shows it.</summary>
@@ -22,6 +23,9 @@ public sealed class DesktopPetHandOverlay
 
     /// <summary>Package-relative path to the overlay PNG.</summary>
     public string ImageRelativePath { get; }
+
+    /// <summary>True for right-side key overlays; the default standard layout is left-hand only.</summary>
+    public bool IsRightHand { get; }
 }
 
 /// <summary>
@@ -35,13 +39,15 @@ public sealed class DesktopPetPackage
         string model3RelativePath,
         string mocRelativePath,
         IReadOnlyList<string> textureRelativePaths,
-        IReadOnlyList<DesktopPetHandOverlay> hands)
+        IReadOnlyList<DesktopPetHandOverlay> hands,
+        string? backgroundRelativePath = null)
     {
         RootPath = rootPath;
         Model3RelativePath = model3RelativePath;
         MocRelativePath = mocRelativePath;
         TextureRelativePaths = textureRelativePaths;
         Hands = hands;
+        BackgroundRelativePath = backgroundRelativePath;
     }
 
     /// <summary>Absolute directory the viewer is allowed to serve from.</summary>
@@ -55,6 +61,12 @@ public sealed class DesktopPetPackage
 
     /// <summary>Overlay images in config order; an empty configured slot produces no entry.</summary>
     public IReadOnlyList<DesktopPetHandOverlay> Hands { get; }
+
+    /// <summary>
+    /// Package-relative path of the static keyboard background, validated like every other asset;
+    /// null when the package has none (DS and plain bare models).
+    /// </summary>
+    public string? BackgroundRelativePath { get; }
 }
 
 /// <summary>
@@ -198,7 +210,7 @@ public static class DesktopPetModelLoader
             return false;
         }
 
-        return TryBuildPackage(root, manifests[0], handGroups, out package, out error);
+        return TryBuildPackage(root, manifests[0], handGroups, null, out package, out error);
     }
 
     private static bool TryLoadBareModel(string root, out DesktopPetPackage? package, out string? error)
@@ -223,8 +235,139 @@ public static class DesktopPetModelLoader
             return false;
         }
 
-        // A bare directory has no Mver config, so there is no hand mapping to apply.
-        return TryBuildPackage(root, manifests[0], Array.Empty<KeyValuePair<int, IReadOnlyList<int>>>(), out package, out error);
+        if (!TryReadKeyboardKeyOverlays(root, out var hands, out error))
+        {
+            return false;
+        }
+
+        // The keyboard-mode layout may ship a static keyboard background: a missing file simply
+        // means no background, but a file that exists yet fails validation (link, traversal)
+        // rejects the package, same rule as the hand overlays.
+        string? backgroundRelative = null;
+        const string BackgroundPath = "resources/background.png";
+        var backgroundFullPath = Path.Combine(root, BackgroundPath.Replace('/', Path.DirectorySeparatorChar));
+        if (File.Exists(backgroundFullPath))
+        {
+            if (!TryResolveFile(root, BackgroundPath, out _, out error))
+            {
+                return false;
+            }
+
+            backgroundRelative = BackgroundPath;
+        }
+
+        return TryBuildPackage(root, manifests[0], hands, backgroundRelative, out package, out error);
+    }
+
+    // Fixed "keyboard mode" layout: resources/left-keys and resources/right-keys hold PNGs named
+    // after keys. Only these known names are mapped; a bare model without the folders stays
+    // overlay-free. No config file, no directory enumeration — paths are constructed from the
+    // known names and validated like every other package asset.
+    private const string LeftKeysFolder = "resources/left-keys";
+    private const string RightKeysFolder = "resources/right-keys";
+
+    private static readonly IReadOnlyList<KeyValuePair<string, int>> NamedKeyCodes = new KeyValuePair<string, int>[]
+    {
+        // 0-9 -> '0'..'9', A-Z -> 'A'..'Z' are built from the ranges below.
+        new("BackQuote", 192), new("Tab", 9), new("CapsLock", 20), new("ControlLeft", 162),
+        new("Shift", 16), new("Alt", 18), new("Space", 32), new("BackSlash", 220), new("Backspace", 8),
+        new("Comma", 188), new("Dot", 190), new("DownArrow", 40), new("Equal", 187), new("LeftArrow", 37),
+        new("LeftBracket", 219), new("Minus", 189), new("Quote", 222), new("Return", 13), new("RightArrow", 39),
+        new("RightBracket", 221), new("SemiColon", 186), new("Slash", 191), new("UpArrow", 38)
+    };
+
+    private static bool TryReadKeyboardKeyOverlays(
+        string root,
+        out IReadOnlyList<DesktopPetHandOverlay> hands,
+        out string? error)
+    {
+        hands = Array.Empty<DesktopPetHandOverlay>();
+        error = null;
+
+        var hasLeft = TryReadKeyboardKeysFolder(root, LeftKeysFolder, out error);
+        if (error != null)
+        {
+            return false;
+        }
+
+        var hasRight = TryReadKeyboardKeysFolder(root, RightKeysFolder, out var rightError);
+        if (rightError != null)
+        {
+            error = rightError;
+            return false;
+        }
+
+        if (!hasLeft && !hasRight)
+        {
+            // A plain bare model has no keyboard overlay layout; that is fine.
+            return true;
+        }
+
+        var overlays = new List<DesktopPetHandOverlay>();
+        for (var keyCode = 48; keyCode <= 90; keyCode++)
+        {
+            if (keyCode > 57 && keyCode < 65)
+            {
+                continue; // 58-64 are not key codes in this layout (between Num9 and KeyA).
+            }
+
+            // 48-57 -> Num0..Num9, 65-90 -> KeyA..KeyZ.
+            var name = keyCode <= 57 ? "Num" + (keyCode - 48) : "Key" + (char)keyCode;
+            AddOverlayIfPresent(root, LeftKeysFolder, name, keyCode, isRightHand: false, overlays);
+            AddOverlayIfPresent(root, RightKeysFolder, name, keyCode, isRightHand: true, overlays);
+        }
+
+        foreach (var named in NamedKeyCodes)
+        {
+            AddOverlayIfPresent(root, LeftKeysFolder, named.Key, named.Value, isRightHand: false, overlays);
+            AddOverlayIfPresent(root, RightKeysFolder, named.Key, named.Value, isRightHand: true, overlays);
+        }
+
+        // Both Windows keys share one overlay image on the left side.
+        var metaImage = LeftKeysFolder + "/Meta.png";
+        if (File.Exists(Path.Combine(root, metaImage.Replace('/', Path.DirectorySeparatorChar))))
+        {
+            overlays.Add(new DesktopPetHandOverlay(new[] { 91, 92 }, metaImage, isRightHand: false));
+        }
+
+        hands = overlays;
+        return true;
+    }
+
+    /// <summary>
+    /// Checks one fixed keys folder: absent means no overlays for that side, present-but-invalid
+    /// (reparse point, outside root) rejects the package. Returns true when the folder is usable.
+    /// </summary>
+    private static bool TryReadKeyboardKeysFolder(string root, string folder, out string? error)
+    {
+        error = null;
+        var fullPath = Path.Combine(root, folder.Replace('/', Path.DirectorySeparatorChar));
+        if (!Directory.Exists(fullPath))
+        {
+            return false;
+        }
+
+        return TryResolveDirectory(root, fullPath, out _, out error);
+    }
+
+    private static void AddOverlayIfPresent(
+        string root,
+        string folder,
+        string keyName,
+        int keyCode,
+        bool isRightHand,
+        List<DesktopPetHandOverlay> overlays)
+    {
+        var candidate = Path.Combine(
+            root, folder.Replace('/', Path.DirectorySeparatorChar), keyName + ".png");
+        if (!File.Exists(candidate))
+        {
+            // A missing PNG simply means that key has no overlay; the mapping is by name. Existing
+            // images are validated by TryBuildPackage, so a link here rejects the whole package.
+            return;
+        }
+
+        overlays.Add(new DesktopPetHandOverlay(new[] { keyCode }, folder + "/" + keyName + ".png", isRightHand));
     }
 
     /// <summary>
@@ -233,10 +376,10 @@ public static class DesktopPetModelLoader
     /// </summary>
     private static bool TryReadStandardHandGroups(
         string root,
-        out IReadOnlyList<KeyValuePair<int, IReadOnlyList<int>>> handGroups,
+        out IReadOnlyList<DesktopPetHandOverlay> hands,
         out string? error)
     {
-        handGroups = Array.Empty<KeyValuePair<int, IReadOnlyList<int>>>();
+        hands = Array.Empty<DesktopPetHandOverlay>();
         error = null;
 
         var configPath = Path.Combine(root, ConfigFileName);
@@ -263,11 +406,11 @@ public static class DesktopPetModelLoader
 
             if (!standard.TryGetProperty("hand", out var hand) || hand.ValueKind != JsonValueKind.Array)
             {
-                handGroups = Array.Empty<KeyValuePair<int, IReadOnlyList<int>>>();
+                hands = Array.Empty<DesktopPetHandOverlay>();
                 return true;
             }
 
-            var groups = new List<KeyValuePair<int, IReadOnlyList<int>>>();
+            var overlays = new List<DesktopPetHandOverlay>();
             var slot = 0;
             foreach (var group in hand.EnumerateArray())
             {
@@ -292,13 +435,13 @@ public static class DesktopPetModelLoader
 
                 if (keys.Count > 0)
                 {
-                    groups.Add(new KeyValuePair<int, IReadOnlyList<int>>(slot, keys));
+                    overlays.Add(new DesktopPetHandOverlay(keys, HandFolder + "/" + slot + ".png"));
                 }
 
                 slot++;
             }
 
-            handGroups = groups;
+            hands = overlays;
             return true;
         }
     }
@@ -306,7 +449,8 @@ public static class DesktopPetModelLoader
     private static bool TryBuildPackage(
         string root,
         string model3FullPath,
-        IReadOnlyList<KeyValuePair<int, IReadOnlyList<int>>> handGroups,
+        IReadOnlyList<DesktopPetHandOverlay> hands,
+        string? backgroundRelativePath,
         out DesktopPetPackage? package,
         out string? error)
     {
@@ -388,19 +532,19 @@ public static class DesktopPetModelLoader
                 return false;
             }
 
-            var hands = new List<DesktopPetHandOverlay>(handGroups.Count);
-            foreach (var group in handGroups)
+            var resolvedHands = new List<DesktopPetHandOverlay>(hands.Count);
+            foreach (var hand in hands)
             {
-                var imageRelative = HandFolder + "/" + group.Key + ".png";
-                if (!TryResolveFile(root, imageRelative, out _, out error))
+                if (!TryResolveFile(root, hand.ImageRelativePath, out _, out error))
                 {
                     return false;
                 }
 
-                hands.Add(new DesktopPetHandOverlay(group.Value, imageRelative));
+                resolvedHands.Add(hand);
             }
 
-            package = new DesktopPetPackage(root, model3RelativePath, mocRelative, textures, hands);
+            package = new DesktopPetPackage(
+                root, model3RelativePath, mocRelative, textures, resolvedHands, backgroundRelativePath);
             return true;
         }
     }

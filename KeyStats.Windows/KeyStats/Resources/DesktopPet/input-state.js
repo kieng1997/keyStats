@@ -15,6 +15,7 @@
   var PARAM_MOUSE_LEFT_DOWN = 'ParamMouseLeftDown';
   var PARAM_MOUSE_RIGHT_DOWN = 'ParamMouseRightDown';
   var PARAM_LEFT_HAND_DOWN = 'CatParamLeftHandDown';
+  var PARAM_RIGHT_HAND_DOWN = 'CatParamRightHandDown';
 
   function clamp(value, min, max) {
     if (typeof value !== 'number' || !isFinite(value)) return min;
@@ -22,7 +23,7 @@
   }
 
   /**
-   * @param {{hands: Array<{virtualKeys: number[], imageRelativePath: string}>}} model
+   * @param {{hands: Array<{virtualKeys: number[], imageRelativePath: string, isRightHand?: boolean}>}} model
    */
   function createInputState(model, options) {
     var opts = options || {};
@@ -30,19 +31,23 @@
     var loaded = opts.loadedHandImages || null;
 
     // Pre-compute key -> hand indexes so input handling never touches the filesystem.
-    var handIndexesByKey = {};
+    // The left and right sides resolve independently: each tracks its own newest held key.
+    var leftIndexesByKey = {};
+    var rightIndexesByKey = {};
     for (var handIndex = 0; handIndex < hands.length; handIndex++) {
       var virtualKeys = hands[handIndex].virtualKeys || [];
+      var target = hands[handIndex].isRightHand ? rightIndexesByKey : leftIndexesByKey;
       for (var keyIndex = 0; keyIndex < virtualKeys.length; keyIndex++) {
         var virtualKey = virtualKeys[keyIndex];
         if (typeof virtualKey !== 'number') continue;
-        if (!handIndexesByKey[virtualKey]) handIndexesByKey[virtualKey] = [];
-        handIndexesByKey[virtualKey].push(handIndex);
+        if (!target[virtualKey]) target[virtualKey] = [];
+        target[virtualKey].push(handIndex);
       }
     }
 
     var state = {
       activeHandIndex: -1,
+      activeRightHandIndex: -1,
       mouseX: 0,
       mouseY: 0,
       leftDown: false,
@@ -75,11 +80,11 @@
       pressOrder = kept;
     }
 
-    function resolveActiveHand() {
-      // Newest still-held key that has an overlay wins.
+    function resolveActiveHand(candidatesByKey) {
+      // Newest still-held key that has an overlay on the requested side wins.
       for (var i = pressOrder.length - 1; i >= 0; i--) {
         var key = pressOrder[i];
-        var candidates = handIndexesByKey[key];
+        var candidates = candidatesByKey[key];
         if (!candidates) continue;
         return { handIndex: candidates[0], key: key };
       }
@@ -104,8 +109,10 @@
       var normalisedY = clamp(1 - fractionY * 2, -1, 1);
 
       updatePressOrder(keys);
-      var resolved = resolveActiveHand();
+      var resolved = resolveActiveHand(leftIndexesByKey);
       var handIndex = resolved.handIndex;
+      var resolvedRight = resolveActiveHand(rightIndexesByKey);
+      var rightHandIndex = resolvedRight.handIndex;
 
       if (handIndex >= 0 && handIndex !== state.activeHandIndex) {
         state.lastPressedKey = resolved.key;
@@ -113,12 +120,14 @@
 
       var changed =
         handIndex !== state.activeHandIndex ||
+        rightHandIndex !== state.activeRightHandIndex ||
         Math.abs(normalisedX - state.mouseX) > 0.0001 ||
         Math.abs(normalisedY - state.mouseY) > 0.0001 ||
         !!input.leftDown !== state.leftDown ||
         !!input.rightDown !== state.rightDown;
 
       state.activeHandIndex = handIndex;
+      state.activeRightHandIndex = rightHandIndex;
       state.mouseX = normalisedX;
       state.mouseY = normalisedY;
       state.leftDown = !!input.leftDown;
@@ -129,19 +138,33 @@
         handImage = null;
       }
 
+      var rightHandImage = rightHandIndex >= 0 ? hands[rightHandIndex].imageRelativePath : null;
+      if (rightHandImage && loaded && loaded[rightHandImage] === false) {
+        rightHandImage = null;
+      }
+
       var params = {};
       params[PARAM_MOUSE_X] = normalisedX;
       params[PARAM_MOUSE_Y] = normalisedY;
       params[PARAM_MOUSE_LEFT_DOWN] = state.leftDown ? 1 : 0;
       params[PARAM_MOUSE_RIGHT_DOWN] = state.rightDown ? 1 : 0;
       params[PARAM_LEFT_HAND_DOWN] = handImage ? 1 : 0;
+      params[PARAM_RIGHT_HAND_DOWN] = rightHandImage ? 1 : 0;
 
-      return { changed: changed, handIndex: handIndex, handImage: handImage, params: params };
+      return {
+        changed: changed,
+        handIndex: handIndex,
+        handImage: handImage,
+        rightHandIndex: rightHandIndex,
+        rightHandImage: rightHandImage,
+        params: params
+      };
     }
 
     function getState() {
       return {
         activeHandIndex: state.activeHandIndex,
+        activeRightHandIndex: state.activeRightHandIndex,
         lastPressedKey: state.lastPressedKey,
         mouseX: state.mouseX,
         mouseY: state.mouseY,
@@ -154,7 +177,10 @@
       applyInput: applyInput,
       getState: getState,
       handCount: hands.length,
-      keysWithOverlay: Object.keys(handIndexesByKey).map(Number)
+      keysWithOverlay: Object.keys(leftIndexesByKey).map(Number)
+        .filter(function (key) { return !(key in rightIndexesByKey); })
+        .concat(Object.keys(rightIndexesByKey).map(Number))
+        .map(Number)
     };
   }
 
@@ -165,7 +191,8 @@
       mouseY: PARAM_MOUSE_Y,
       mouseLeftDown: PARAM_MOUSE_LEFT_DOWN,
       mouseRightDown: PARAM_MOUSE_RIGHT_DOWN,
-      leftHandDown: PARAM_LEFT_HAND_DOWN
+      leftHandDown: PARAM_LEFT_HAND_DOWN,
+      rightHandDown: PARAM_RIGHT_HAND_DOWN
     }
   };
 

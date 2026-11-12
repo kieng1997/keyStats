@@ -15,7 +15,7 @@
     user-select: none;
     -webkit-user-select: none;
   }
-  #stage, #overlays, #overlays img {
+  #stage, #background, #overlays, #overlays img {
     position: absolute;
     left: 0;
     top: 0;
@@ -23,8 +23,10 @@
     height: 100%;
   }
   #stage { display: block; }
+  #background { pointer-events: none; }
+  #background img { display: block; width: 100%; height: 100%; object-fit: contain; }
   #overlays { pointer-events: none; }
-  #overlays img { display: block; object-fit: fill; }
+  #overlays img { display: block; object-fit: contain; }
   #overlays img[hidden] { display: none; }
   #status {
     position: absolute;
@@ -46,6 +48,7 @@
 </head>
 <body>
 <canvas id="stage"></canvas>
+<div id="background" hidden><img id="background-image" alt="" draggable="false"></div>
 <div id="overlays"></div>
 <div id="status" hidden></div>
 <script src="vendor/live2dcubismcore.min.js"></script>
