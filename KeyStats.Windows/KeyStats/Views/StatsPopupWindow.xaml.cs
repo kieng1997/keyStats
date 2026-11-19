@@ -435,6 +435,7 @@ public partial class StatsPopupWindow : Window
 
         if (_isWindowMode)
         {
+            ActiveAppsList.Template = (System.Windows.Controls.ControlTemplate)ActiveAppsList.FindResource("WindowedAppStatsListTemplate");
             PopupSectionsGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition
             {
                 Width = new GridLength(1, GridUnitType.Star)

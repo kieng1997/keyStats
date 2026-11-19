@@ -342,7 +342,8 @@
                         Click="OpenAppStats_Click" Padding="12,5"/>
             </Grid>
             <Border Grid.Row="1" Style="{DynamicResource CardBorder}" Padding="8,6" Margin="0,0,0,6" VerticalAlignment="Stretch">
-                <ListBox ItemsSource="{Binding AppStatsItems}"
+                <ListBox x:Name="ActiveAppsList"
+                         ItemsSource="{Binding AppStatsItems}"
                          VerticalAlignment="Stretch"
                          Background="Transparent"
                          BorderThickness="0"
@@ -352,6 +353,9 @@
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          ScrollViewer.VerticalScrollBarVisibility="Auto">
                     <ListBox.Resources>
+                        <ControlTemplate x:Key="WindowedAppStatsListTemplate" TargetType="ListBox">
+                            <ItemsPresenter/>
+                        </ControlTemplate>
                         <Style TargetType="ScrollBar">
                             <Setter Property="Width" Value="6"/>
                             <Setter Property="MinWidth" Value="6"/>
