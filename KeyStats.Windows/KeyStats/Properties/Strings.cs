@@ -180,7 +180,9 @@ public static class Strings
     public static string Stats_ScrollDistance => Get(nameof(Stats_ScrollDistance));
     public static string Stats_ScrollUpDistance => Get(nameof(Stats_ScrollUpDistance));
     public static string Stats_ScrollDownDistance => Get(nameof(Stats_ScrollDownDistance));
-    public static string Stats_ScrollDistanceWithRevolutionsFormat => Get(nameof(Stats_ScrollDistanceWithRevolutionsFormat));
+    public static string Stats_ScrollTotalDistance => Get(nameof(Stats_ScrollTotalDistance));
+    public static string Stats_ScrollRevolutions => Get(nameof(Stats_ScrollRevolutions));
+    public static string Stats_ScrollRevolutionsFormat => Get(nameof(Stats_ScrollRevolutionsFormat));
     public static string Stats_KeyBreakdown => Get(nameof(Stats_KeyBreakdown));
     public static string KeyBreakdown_Empty => Get(nameof(KeyBreakdown_Empty));
     public static string Stats_KeyboardHeatmap => Get(nameof(Stats_KeyboardHeatmap));

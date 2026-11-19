@@ -194,10 +194,11 @@ public sealed class ScrollDirectionAndRevolutionsTests
             try
             {
                 CultureInfo.CurrentUICulture = new CultureInfo("zh-Hans");
-                var formatted = manager.FormatCalibratedScrollWithRevolutions(90);
-                StringAssert.Contains(formatted, manager.FormatCalibratedDistance(90));
-                StringAssert.Contains(formatted, "3");
-                StringAssert.Contains(formatted, "圈");
+                Assert.AreEqual("滚轮上滚", KeyStats.Properties.Strings.Stats_ScrollUpDistance);
+                Assert.AreEqual("滚轮下滚", KeyStats.Properties.Strings.Stats_ScrollDownDistance);
+                Assert.AreEqual("滚轮总滚动", KeyStats.Properties.Strings.Stats_ScrollTotalDistance);
+                Assert.AreEqual("约滚圈数", KeyStats.Properties.Strings.Stats_ScrollRevolutions);
+                Assert.AreEqual("3 圈", manager.FormatScrollRevolutions(90));
             }
             finally
             {

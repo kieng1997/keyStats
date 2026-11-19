@@ -132,23 +132,59 @@
                 </Viewbox>
             </Canvas>
         </Viewbox>
-        <Viewbox Grid.Row="1" Margin="0,6,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"
-                 Stretch="Uniform" StretchDirection="DownOnly">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="4"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Border Grid.Column="0" Background="{DynamicResource SubtleFillBrush}"
-                        BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0.5" CornerRadius="6" Padding="9,7">
-                    <controls:StatItemControl Icon="&#xE8AB;" Title="{x:Static p:Strings.Stats_MouseDistance}" Value="{Binding HistoryMouseDistance}"/>
-                </Border>
-                <Border Grid.Column="2" Background="{DynamicResource SubtleFillBrush}"
-                        BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0.5" CornerRadius="6" Padding="9,7">
-                    <controls:StatItemControl Icon="&#xE74A;" Title="{x:Static p:Strings.Stats_ScrollDistance}" Value="{Binding HistoryScrollDistance}"/>
-                </Border>
-            </Grid>
-        </Viewbox>
+        <Grid Grid.Row="1" Margin="0,6,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="4"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="4"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Background="{DynamicResource SubtleFillBrush}"
+                    BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0.5" CornerRadius="6" Padding="8,7">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8AB;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                   Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="{x:Static p:Strings.Stats_MouseDistance}" FontSize="10"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0">
+                        <TextBlock Text="{Binding HistoryMouseDistance}" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    </Viewbox>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Background="{DynamicResource SubtleFillBrush}"
+                    BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0.5" CornerRadius="6" Padding="8,7">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE74A;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                   Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="{x:Static p:Strings.Stats_ScrollTotalDistance}" FontSize="10"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0">
+                        <TextBlock Text="{Binding HistoryScrollDistance}" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    </Viewbox>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="4" Background="{DynamicResource SubtleFillBrush}"
+                    BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0.5" CornerRadius="6" Padding="8,7">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                   Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="{x:Static p:Strings.Stats_ScrollRevolutions}" FontSize="10"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0">
+                        <TextBlock Text="{Binding HistoryScrollRevolutions}" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    </Viewbox>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>

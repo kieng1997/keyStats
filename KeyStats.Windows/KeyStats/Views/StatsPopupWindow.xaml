@@ -244,21 +244,55 @@
                 </StackPanel>
             </Border>
 
-            <Border Style="{DynamicResource CardBorder}" Margin="0,0,0,4" Padding="8,7">
-                <controls:StatItemControl Icon="&#xE8AB;" Title="{x:Static p:Strings.Stats_MouseDistance}" Value="{Binding MouseDistance}"/>
-            </Border>
-
             <Grid Margin="0,0,0,4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="4"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="4"/>
+                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Border Grid.Column="0" Style="{DynamicResource CardBorder}" Padding="8,7">
-                    <controls:StatItemControl Icon="&#xE74A;" Title="{x:Static p:Strings.Stats_ScrollUpDistance}" Value="{Binding ScrollUpDistance}"/>
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8AB;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                       Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <TextBlock Text="{x:Static p:Strings.Stats_MouseDistance}" FontSize="10"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0">
+                            <TextBlock Text="{Binding MouseDistance}" FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        </Viewbox>
+                    </StackPanel>
                 </Border>
                 <Border Grid.Column="2" Style="{DynamicResource CardBorder}" Padding="8,7">
-                    <controls:StatItemControl Icon="&#xE74B;" Title="{x:Static p:Strings.Stats_ScrollDownDistance}" Value="{Binding ScrollDownDistance}"/>
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE74A;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                       Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <TextBlock Text="{x:Static p:Strings.Stats_ScrollUpDistance}" FontSize="10"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0">
+                            <TextBlock Text="{Binding ScrollUpDistance}" FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        </Viewbox>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="4" Style="{DynamicResource CardBorder}" Padding="8,7">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE74B;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                       Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <TextBlock Text="{x:Static p:Strings.Stats_ScrollDownDistance}" FontSize="10"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0">
+                            <TextBlock Text="{Binding ScrollDownDistance}" FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        </Viewbox>
+                    </StackPanel>
                 </Border>
             </Grid>
 

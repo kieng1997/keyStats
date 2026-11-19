@@ -75,6 +75,7 @@ public class StatsPopupViewModel : ViewModelBase
     private string _historySideForwardClicks = "0";
     private string _historyMouseDistance = "0 px";
     private string _historyScrollDistance = "0 px";
+    private string _historyScrollRevolutions = "0";
     private ObservableCollection<ChartDataPoint> _chartData = new();
     private ObservableCollection<ChartDataPoint>? _localChartData;
 
@@ -266,6 +267,12 @@ public class StatsPopupViewModel : ViewModelBase
     {
         get => _historyScrollDistance;
         set => SetProperty(ref _historyScrollDistance, value);
+    }
+
+    public string HistoryScrollRevolutions
+    {
+        get => _historyScrollRevolutions;
+        set => SetProperty(ref _historyScrollRevolutions, value);
     }
 
     public ObservableCollection<KeyCountItem> Column1Items { get; } = new();
@@ -522,7 +529,8 @@ public class StatsPopupViewModel : ViewModelBase
         HistorySideBackClicks = manager.FormatNumber(totals.SideBackClicks);
         HistorySideForwardClicks = manager.FormatNumber(totals.SideForwardClicks);
         HistoryMouseDistance = manager.FormatMouseDistance(totals.MouseDistance);
-        HistoryScrollDistance = manager.FormatCalibratedScrollWithRevolutions(totals.ScrollDistance);
+        HistoryScrollDistance = manager.FormatCalibratedDistance(totals.ScrollDistance);
+        HistoryScrollRevolutions = manager.FormatScrollRevolutions(totals.ScrollDistance);
     }
 
     private static StatsManager.MouseTotalsRange MapMouseTotalsRange(int index) => index switch

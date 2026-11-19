@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -3077,13 +3077,11 @@ public class StatsManager : IDisposable
         return (long)Math.Floor((sanitized / stepsPerRevolution) + 1e-9);
     }
 
-    public string FormatCalibratedScrollWithRevolutions(double distance)
+    public string FormatScrollRevolutions(double distance)
     {
-        var distanceText = FormatCalibratedDistance(distance);
         var revolutions = CalculateScrollRevolutions(distance);
         return string.Format(
-            KeyStats.Properties.Strings.Stats_ScrollDistanceWithRevolutionsFormat,
-            distanceText,
+            KeyStats.Properties.Strings.Stats_ScrollRevolutionsFormat,
             revolutions.ToString("N0"));
     }
 
