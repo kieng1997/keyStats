@@ -70,7 +70,6 @@
 
             <!-- Global Styles -->
             <Style TargetType="Window">
-                <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
                 <Setter Property="UseLayoutRounding" Value="True"/>
                 <Setter Property="SnapsToDevicePixels" Value="True"/>
                 <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
