@@ -494,6 +494,7 @@ public partial class SyncSettingsWindow : Window
         var dialog = new Window
         {
             Owner = this,
+            FontFamily = KeyStats.Helpers.AppFonts.Primary,
             Title = KeyStats.Properties.Strings.Sync_RecoveryReplaceTitle,
             Content = content,
             SizeToContent = SizeToContent.WidthAndHeight,

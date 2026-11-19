@@ -58,6 +58,8 @@ public class StatsPopupViewModel : ViewModelBase
     private bool _isSideClickRowVisible;
     private string _mouseDistance = "0 px";
     private string _scrollDistance = "0 px";
+    private string _scrollUpDistance = "0 px";
+    private string _scrollDownDistance = "0 px";
     private string _peakKPS = "0";
     private string _peakCPS = "0";
     private bool _isPeakPopupOpen;
@@ -73,6 +75,7 @@ public class StatsPopupViewModel : ViewModelBase
     private string _historySideForwardClicks = "0";
     private string _historyMouseDistance = "0 px";
     private string _historyScrollDistance = "0 px";
+    private string _historyScrollRevolutions = "0";
     private ObservableCollection<ChartDataPoint> _chartData = new();
     private ObservableCollection<ChartDataPoint>? _localChartData;
 
@@ -134,6 +137,18 @@ public class StatsPopupViewModel : ViewModelBase
     {
         get => _scrollDistance;
         set => SetProperty(ref _scrollDistance, value);
+    }
+
+    public string ScrollUpDistance
+    {
+        get => _scrollUpDistance;
+        set => SetProperty(ref _scrollUpDistance, value);
+    }
+
+    public string ScrollDownDistance
+    {
+        get => _scrollDownDistance;
+        set => SetProperty(ref _scrollDownDistance, value);
     }
 
     public string PeakKPS
@@ -252,6 +267,12 @@ public class StatsPopupViewModel : ViewModelBase
     {
         get => _historyScrollDistance;
         set => SetProperty(ref _historyScrollDistance, value);
+    }
+
+    public string HistoryScrollRevolutions
+    {
+        get => _historyScrollRevolutions;
+        set => SetProperty(ref _historyScrollRevolutions, value);
     }
 
     public ObservableCollection<KeyCountItem> Column1Items { get; } = new();
@@ -417,6 +438,8 @@ public class StatsPopupViewModel : ViewModelBase
         IsSideClickRowVisible = (stats.SideBackClicks + stats.SideForwardClicks) > 0;
         MouseDistance = manager.FormatMouseDistance(stats.MouseDistance);
         ScrollDistance = stats.FormattedScrollDistance;
+        ScrollUpDistance = stats.FormattedScrollUpDistance;
+        ScrollDownDistance = stats.FormattedScrollDownDistance;
         PeakKPS = string.Format(
             KeyStats.Properties.Strings.Stats_HistoricalPeakFormat,
             Math.Round(stats.PeakKPS, MidpointRounding.AwayFromZero).ToString("N0"),
@@ -507,6 +530,7 @@ public class StatsPopupViewModel : ViewModelBase
         HistorySideForwardClicks = manager.FormatNumber(totals.SideForwardClicks);
         HistoryMouseDistance = manager.FormatMouseDistance(totals.MouseDistance);
         HistoryScrollDistance = manager.FormatCalibratedDistance(totals.ScrollDistance);
+        HistoryScrollRevolutions = manager.FormatScrollRevolutions(totals.ScrollDistance);
     }
 
     private static StatsManager.MouseTotalsRange MapMouseTotalsRange(int index) => index switch

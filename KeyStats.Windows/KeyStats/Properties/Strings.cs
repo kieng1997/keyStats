@@ -85,6 +85,8 @@ public static class Strings
     public static string Settings_DistanceCalibrationDesc => Get(nameof(Settings_DistanceCalibrationDesc));
     public static string Settings_MouseScrollCalibration => Get(nameof(Settings_MouseScrollCalibration));
     public static string Settings_MouseScrollCalibrationDesc => Get(nameof(Settings_MouseScrollCalibrationDesc));
+    public static string Settings_ScrollStepsPerRevolution => Get(nameof(Settings_ScrollStepsPerRevolution));
+    public static string Settings_ScrollStepsPerRevolutionDesc => Get(nameof(Settings_ScrollStepsPerRevolutionDesc));
     public static string Settings_VersionFormat => Get(nameof(Settings_VersionFormat));
     public static string Settings_OpenGitHubFailedMessage => Get(nameof(Settings_OpenGitHubFailedMessage));
     public static string Settings_CheckUpdate => Get(nameof(Settings_CheckUpdate));
@@ -176,6 +178,11 @@ public static class Strings
     public static string Click_Forward => Get(nameof(Click_Forward));
     public static string Stats_MouseDistance => Get(nameof(Stats_MouseDistance));
     public static string Stats_ScrollDistance => Get(nameof(Stats_ScrollDistance));
+    public static string Stats_ScrollUpDistance => Get(nameof(Stats_ScrollUpDistance));
+    public static string Stats_ScrollDownDistance => Get(nameof(Stats_ScrollDownDistance));
+    public static string Stats_ScrollTotalDistance => Get(nameof(Stats_ScrollTotalDistance));
+    public static string Stats_ScrollRevolutions => Get(nameof(Stats_ScrollRevolutions));
+    public static string Stats_ScrollRevolutionsFormat => Get(nameof(Stats_ScrollRevolutionsFormat));
     public static string Stats_KeyBreakdown => Get(nameof(Stats_KeyBreakdown));
     public static string KeyBreakdown_Empty => Get(nameof(KeyBreakdown_Empty));
     public static string Stats_KeyboardHeatmap => Get(nameof(Stats_KeyboardHeatmap));

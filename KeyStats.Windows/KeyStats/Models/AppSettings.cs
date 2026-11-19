@@ -6,6 +6,7 @@ namespace KeyStats.Models;
 public class AppSettings
 {
     public const double DefaultMouseMetersPerPixel = 0.00005;
+    public const int DefaultMouseScrollStepsPerRevolution = 24;
     public const string FloatingStatsSingleRowLayoutMode = "singleRow";
     public const string FloatingStatsDoubleRowLayoutMode = "doubleRow";
     public const int FloatingStatsLayoutBaseFontSize = 11;
@@ -42,6 +43,9 @@ public class AppSettings
 
     [JsonPropertyName("mouseScrollPpi")]
     public int MouseScrollPpi { get; set; } = 92;
+
+    [JsonPropertyName("mouseScrollStepsPerRevolution")]
+    public int MouseScrollStepsPerRevolution { get; set; } = DefaultMouseScrollStepsPerRevolution;
 
     [JsonPropertyName("keyHistorySelectedRangeIndex")]
     public int KeyHistorySelectedRangeIndex { get; set; } = 1;
@@ -123,6 +127,20 @@ public class AppSettings
 
     [JsonPropertyName("languagePreference")]
     public string LanguagePreference { get; set; } = "system";  // "system" | "zh-Hans" | "zh-Hant" | "en"
+
+    /// <summary>
+    /// Absolute local path of the desktop pet model folder. Null means no model chosen yet.
+    /// </summary>
+    [JsonPropertyName("desktopPetModelPath")]
+    public string? DesktopPetModelPath { get; set; }
+
+    /// <summary>
+    /// Id of the bundled desktop pet preset ("ds-standard", "nailin-keyboard"). Null means the
+    /// legacy custom path (or nothing) applies; preset ids are only ever matched against fixed
+    /// literals, never turned into paths from arbitrary settings strings.
+    /// </summary>
+    [JsonPropertyName("desktopPetPresetId")]
+    public string? DesktopPetPresetId { get; set; }
 
     /// <summary>
     /// Detached copy used when persisting settings: the fields are value types or immutable

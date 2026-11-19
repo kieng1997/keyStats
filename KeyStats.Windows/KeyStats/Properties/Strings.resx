@@ -139,6 +139,8 @@
   <data name="Settings_DistanceCalibrationDesc" xml:space="preserve"><value>Calibrate the mouse movement coefficient</value></data>
   <data name="Settings_MouseScrollCalibration" xml:space="preserve"><value>Mouse Scroll Calculation Calibration</value></data>
   <data name="Settings_MouseScrollCalibrationDesc" xml:space="preserve"><value>Calculate screen PPI from resolution and diagonal size</value></data>
+  <data name="Settings_ScrollStepsPerRevolution" xml:space="preserve"><value>Scroll Steps per Revolution</value></data>
+  <data name="Settings_ScrollStepsPerRevolutionDesc" xml:space="preserve"><value>Divisor used to convert scroll total into revolutions (default 24)</value></data>
   <data name="Settings_VersionFormat" xml:space="preserve"><value>Current version {0}</value></data>
   <data name="Settings_OpenGitHubFailedMessage" xml:space="preserve"><value>Could not open the GitHub page.</value></data>
   <data name="Settings_CheckUpdate" xml:space="preserve"><value>Check for updates</value></data>
@@ -163,6 +165,11 @@
   <data name="Click_Forward" xml:space="preserve"><value>Forward</value></data>
   <data name="Stats_MouseDistance" xml:space="preserve"><value>Mouse Distance</value></data>
   <data name="Stats_ScrollDistance" xml:space="preserve"><value>Scroll Distance</value></data>
+  <data name="Stats_ScrollUpDistance" xml:space="preserve"><value>Scroll Up</value></data>
+  <data name="Stats_ScrollDownDistance" xml:space="preserve"><value>Scroll Down</value></data>
+  <data name="Stats_ScrollTotalDistance" xml:space="preserve"><value>Total Scroll</value></data>
+  <data name="Stats_ScrollRevolutions" xml:space="preserve"><value>Est. Turns</value></data>
+  <data name="Stats_ScrollRevolutionsFormat" xml:space="preserve"><value>{0} rev</value></data>
   <data name="Stats_KeyBreakdown" xml:space="preserve"><value>Key Distribution</value></data>
   <data name="KeyBreakdown_Empty" xml:space="preserve"><value>No key data yet</value></data>
   <data name="Stats_KeyboardHeatmap" xml:space="preserve"><value>Keyboard Heatmap</value></data>

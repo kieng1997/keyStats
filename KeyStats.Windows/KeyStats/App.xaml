@@ -57,11 +57,16 @@
             <SolidColorBrush x:Key="AppStatsKeysBrush" Color="#0067C0"/>
             <SolidColorBrush x:Key="AppStatsClicksBrush" Color="#1E9E4A"/>
             <SolidColorBrush x:Key="AppStatsScrollBrush" Color="#E27A1A"/>
+            <SolidColorBrush x:Key="MouseIndicatorBrush" Color="#22B6E5"/>
+            <BitmapImage x:Key="MouseImageSource" UriSource="pack://application:,,,/Resources/Mouse/A7V2Pro_white.png"/>
 
             <!-- Theme-aware brushes for context menu (overridden by ThemeManager) -->
             <SolidColorBrush x:Key="ContextMenuBackgroundBrush" Color="#F9F9F9"/>
             <SolidColorBrush x:Key="MenuItemHoverBrush" Color="#0A000000"/>
             <SolidColorBrush x:Key="ChartAreaBrush" Color="#15808080"/>
+
+            <!-- MiSans is embedded; Segoe UI is the per-glyph fallback. Icon glyphs set their own FontFamily. -->
+            <FontFamily x:Key="AppFontFamily">./Resources/Fonts/#MiSans Medium, Segoe UI</FontFamily>
 
             <!-- Global Styles -->
             <Style TargetType="Window">
@@ -393,6 +398,7 @@
 
             <!-- Windows 11 Context Menu Style -->
             <Style TargetType="ContextMenu">
+                <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
                 <Setter Property="Background" Value="{DynamicResource ContextMenuBackgroundBrush}"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}"/>
                 <Setter Property="BorderThickness" Value="1"/>

@@ -1,4 +1,4 @@
-<Window x:Class="KeyStats.Views.AppStatsWindow"
+<Window FontFamily="{StaticResource AppFontFamily}" x:Class="KeyStats.Views.AppStatsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:viewmodels="clr-namespace:KeyStats.ViewModels"

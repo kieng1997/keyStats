@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -24,7 +24,9 @@ public class StatsManager : IDisposable
             RightClicks = stats.RightClicks;
             MiddleClicks = stats.MiddleClicks;
             MouseDistance = stats.MouseDistance;
-            ScrollDistance = stats.ScrollDistance;
+            ScrollDistance = stats.EffectiveTotalScrollDistance;
+            ScrollUpDistance = stats.EffectiveScrollUpDistance;
+            ScrollDownDistance = stats.EffectiveScrollDownDistance;
             PeakKPS = stats.PeakKPS;
             PeakCPS = stats.PeakCPS;
         }
@@ -36,6 +38,8 @@ public class StatsManager : IDisposable
         public int MiddleClicks { get; }
         public double MouseDistance { get; }
         public double ScrollDistance { get; }
+        public double ScrollUpDistance { get; }
+        public double ScrollDownDistance { get; }
         public double PeakKPS { get; }
         public double PeakCPS { get; }
     }
@@ -365,16 +369,31 @@ public class StatsManager : IDisposable
         ScheduleSave();
     }
 
-    private void OnMouseScrolled(double distance, string appName, string displayName)
+    private void OnMouseScrolled(double distance, bool isScrollUp, string appName, string displayName)
     {
+        var absDistance = SanitizeDistance(Math.Abs(distance));
+        if (absDistance <= 0)
+        {
+            return;
+        }
+
         bool dayChanged;
         lock (_lock)
         {
             if (_isDisposed) return;
 
             dayChanged = EnsureCurrentDayLocked();
-            CurrentStats.ScrollDistance += Math.Abs(distance);
-            UpdateAppStats(appName, displayName, stats => stats.AddScrollDistance(Math.Abs(distance)));
+            CurrentStats.NormalizeScrollDirections();
+            if (isScrollUp)
+            {
+                CurrentStats.ScrollUpDistance += absDistance;
+            }
+            else
+            {
+                CurrentStats.ScrollDownDistance += absDistance;
+            }
+            CurrentStats.ScrollDistance = CurrentStats.ScrollUpDistance + CurrentStats.ScrollDownDistance;
+            UpdateAppStats(appName, displayName, stats => stats.AddScrollDistance(absDistance));
         }
 
         if (dayChanged) CompleteDayRollover();
@@ -738,12 +757,17 @@ public class StatsManager : IDisposable
     private DailyStats? LoadStats()
     {
         var primary = TryDeserialize<DailyStats>(_statsFilePath);
-        if (primary != null) return primary;
+        if (primary != null)
+        {
+            primary.NormalizeScrollDirections();
+            return primary;
+        }
 
         var backup = TryDeserialize<DailyStats>(_statsFilePath + ".bak");
         if (backup != null)
         {
             System.Diagnostics.Debug.WriteLine("Recovered daily_stats from .bak");
+            backup.NormalizeScrollDirections();
             return backup;
         }
 
@@ -774,7 +798,9 @@ public class StatsManager : IDisposable
             SideBackClicks = CurrentStats.SideBackClicks,
             SideForwardClicks = CurrentStats.SideForwardClicks,
             MouseDistance = CurrentStats.MouseDistance,
-            ScrollDistance = CurrentStats.ScrollDistance,
+            ScrollDistance = CurrentStats.EffectiveTotalScrollDistance,
+            ScrollUpDistance = CurrentStats.EffectiveScrollUpDistance,
+            ScrollDownDistance = CurrentStats.EffectiveScrollDownDistance,
             PeakKPS = CurrentStats.PeakKPS,
             PeakCPS = CurrentStats.PeakCPS,
             KeyPressCounts = new Dictionary<string, int>(CurrentStats.KeyPressCounts),
@@ -794,16 +820,29 @@ public class StatsManager : IDisposable
     private Dictionary<string, DailyStats> LoadHistory()
     {
         var primary = TryDeserialize<Dictionary<string, DailyStats>>(_historyFilePath);
-        if (primary != null) return primary;
+        if (primary != null)
+        {
+            NormalizeHistoryScrollDirections(primary);
+            return primary;
+        }
 
         var backup = TryDeserialize<Dictionary<string, DailyStats>>(_historyFilePath + ".bak");
         if (backup != null)
         {
             System.Diagnostics.Debug.WriteLine("Recovered history from .bak");
+            NormalizeHistoryScrollDirections(backup);
             return backup;
         }
 
         return new();
+    }
+
+    private static void NormalizeHistoryScrollDirections(Dictionary<string, DailyStats> history)
+    {
+        foreach (var entry in history.Values)
+        {
+            entry?.NormalizeScrollDirections();
+        }
     }
 
     public void SaveSettings()
@@ -1081,7 +1120,9 @@ public class StatsManager : IDisposable
             SideBackClicks = source.SideBackClicks,
             SideForwardClicks = source.SideForwardClicks,
             MouseDistance = source.MouseDistance,
-            ScrollDistance = source.ScrollDistance,
+            ScrollDistance = source.EffectiveTotalScrollDistance,
+            ScrollUpDistance = source.EffectiveScrollUpDistance,
+            ScrollDownDistance = source.EffectiveScrollDownDistance,
             PeakKPS = source.PeakKPS,
             PeakCPS = source.PeakCPS,
             KeyPressCounts = new Dictionary<string, int>(source.KeyPressCounts),
@@ -1161,7 +1202,7 @@ public class StatsManager : IDisposable
             }
         }
 
-        return new DailyStats(normalizedDate)
+        var normalized = new DailyStats(normalizedDate)
         {
             KeyPresses = Math.Max(0, source?.KeyPresses ?? 0),
             KeyPressCounts = keyPressCounts,
@@ -1172,10 +1213,14 @@ public class StatsManager : IDisposable
             SideForwardClicks = Math.Max(0, source?.SideForwardClicks ?? 0),
             MouseDistance = SanitizeDistance(source?.MouseDistance ?? 0),
             ScrollDistance = SanitizeDistance(source?.ScrollDistance ?? 0),
+            ScrollUpDistance = SanitizeDistance(source?.ScrollUpDistance ?? 0),
+            ScrollDownDistance = SanitizeDistance(source?.ScrollDownDistance ?? 0),
             PeakKPS = Math.Max(0, source?.PeakKPS ?? 0),
             PeakCPS = Math.Max(0, source?.PeakCPS ?? 0),
             AppStats = appStats
         };
+        normalized.NormalizeScrollDirections();
+        return normalized;
     }
 
     private static Dictionary<string, int> NormalizeKeyPressCounts(Dictionary<string, int>? source)
@@ -1236,6 +1281,9 @@ public class StatsManager : IDisposable
             existingApp.ScrollDistance += kvp.Value.ScrollDistance;
         }
 
+        var mergedScrollUp = normalizedExisting.ScrollUpDistance + normalizedIncoming.ScrollUpDistance;
+        var mergedScrollDown = normalizedExisting.ScrollDownDistance + normalizedIncoming.ScrollDownDistance;
+
         return new DailyStats(normalizedExisting.Date.Date)
         {
             KeyPresses = normalizedExisting.KeyPresses + normalizedIncoming.KeyPresses,
@@ -1245,7 +1293,9 @@ public class StatsManager : IDisposable
             SideBackClicks = normalizedExisting.SideBackClicks + normalizedIncoming.SideBackClicks,
             SideForwardClicks = normalizedExisting.SideForwardClicks + normalizedIncoming.SideForwardClicks,
             MouseDistance = normalizedExisting.MouseDistance + normalizedIncoming.MouseDistance,
-            ScrollDistance = normalizedExisting.ScrollDistance + normalizedIncoming.ScrollDistance,
+            ScrollDistance = mergedScrollUp + mergedScrollDown,
+            ScrollUpDistance = mergedScrollUp,
+            ScrollDownDistance = mergedScrollDown,
             PeakKPS = Math.Max(normalizedExisting.PeakKPS, normalizedIncoming.PeakKPS),
             PeakCPS = Math.Max(normalizedExisting.PeakCPS, normalizedIncoming.PeakCPS),
             KeyPressCounts = keyPressCounts,
@@ -2799,7 +2849,7 @@ public class StatsManager : IDisposable
             SafeAdd(totals.SideBackClicks, stats.SideBackClicks),
             SafeAdd(totals.SideForwardClicks, stats.SideForwardClicks),
             totals.MouseDistance + Math.Max(0, stats.MouseDistance),
-            totals.ScrollDistance + Math.Max(0, stats.ScrollDistance));
+            totals.ScrollDistance + stats.EffectiveTotalScrollDistance);
 
     public string FormatHistoryValue(HistoryMetric metric, double value)
     {
@@ -2950,7 +3000,7 @@ public class StatsManager : IDisposable
             HistoryMetric.KeyPresses => stats.KeyPresses,
             HistoryMetric.Clicks => stats.TotalClicks,
             HistoryMetric.MouseDistance => stats.MouseDistance,
-            HistoryMetric.ScrollDistance => stats.ScrollDistance,
+            HistoryMetric.ScrollDistance => stats.EffectiveTotalScrollDistance,
             _ => 0
         };
     }
@@ -3014,6 +3064,27 @@ public class StatsManager : IDisposable
         return $"{centimeters:F1} cm";
     }
 
+    public int GetMouseScrollStepsPerRevolution()
+    {
+        var configured = Settings.MouseScrollStepsPerRevolution;
+        return configured > 0 ? configured : AppSettings.DefaultMouseScrollStepsPerRevolution;
+    }
+
+    public long CalculateScrollRevolutions(double distance)
+    {
+        var stepsPerRevolution = GetMouseScrollStepsPerRevolution();
+        var sanitized = SanitizeDistance(distance);
+        return (long)Math.Floor((sanitized / stepsPerRevolution) + 1e-9);
+    }
+
+    public string FormatScrollRevolutions(double distance)
+    {
+        var revolutions = CalculateScrollRevolutions(distance);
+        return string.Format(
+            KeyStats.Properties.Strings.Stats_ScrollRevolutionsFormat,
+            revolutions.ToString("N0"));
+    }
+
     #endregion
 
     #region Mouse Calibration
@@ -3041,6 +3112,24 @@ public class StatsManager : IDisposable
         lock (_lock)
         {
             Settings.MouseScrollPpi = ppi;
+        }
+
+        SaveSettings();
+        NotifyStatsUpdate();
+    }
+
+    public void UpdateMouseScrollStepsPerRevolution(int stepsPerRevolution)
+    {
+        if (stepsPerRevolution <= 0) return;
+
+        lock (_lock)
+        {
+            if (Settings.MouseScrollStepsPerRevolution == stepsPerRevolution)
+            {
+                return;
+            }
+
+            Settings.MouseScrollStepsPerRevolution = stepsPerRevolution;
         }
 
         SaveSettings();

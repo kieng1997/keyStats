@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -9,7 +10,7 @@ using System.Windows.Threading;
 using KeyStats.Helpers;
 using KeyStats.Models;
 using KeyStats.Services;
-using KeyStats.ViewModels;
+using KeyStats.Views.Controls;
 using Microsoft.Win32;
 using Forms = System.Windows.Forms;
 
@@ -18,36 +19,72 @@ namespace KeyStats.Views;
 public partial class FloatingStatsWindow : Window
 {
     private const double EdgeMargin = 16;
-    private const double SingleRowHeight = 28;
-    private const double DoubleRowHeight = 38;
-    private readonly FloatingStatsViewModel _viewModel;
     private readonly DispatcherTimer _positionSaveTimer;
+    private readonly DesktopPetView _desktopPet;
+    private readonly AppSettings _settings;
+    private readonly Action _saveSettings;
+    private readonly Func<string?>? _chooseModelFolder;
     private bool _isLoaded;
     private bool _isRestoringPosition;
 
+    /// <summary>The preset actually loaded right now; drives the context-menu check marks.</summary>
+    private string? _activePresetId;
+
+    /// <summary>Bundled presets: fixed ids matched against settings, never built from setting text.</summary>
+    private static readonly (string Id, string Title)[] Presets =
+    {
+        ("ds-standard", "DS-标准模式"),
+        ("nailin-keyboard", "乃琳-键盘模型")
+    };
+
+    /// <summary>Production entry point: reads and persists the live application settings.</summary>
     public FloatingStatsWindow()
+        : this(null, null, null, null)
+    {
+    }
+
+    /// <summary>
+    /// Isolation seam for tests and smoke hosts: the window never touches the real settings or
+    /// statistics singleton when an injected <paramref name="settings"/> is supplied.
+    /// </summary>
+    public FloatingStatsWindow(
+        AppSettings? settings,
+        Action? saveSettings,
+        string? webViewProfileFolder,
+        Func<IReadOnlyList<int>, DesktopPetInputFrame>? readInputFrame,
+        Func<string?>? chooseModelFolder = null)
     {
         InitializeComponent();
-        _viewModel = new FloatingStatsViewModel();
-        DataContext = _viewModel;
+        _chooseModelFolder = chooseModelFolder;
         _positionSaveTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromMilliseconds(400)
         };
         _positionSaveTimer.Tick += PositionSaveTimer_Tick;
 
-        var settings = StatsManager.Instance.Settings;
-        Topmost = settings.FloatingStatsTopmost;
+        if (settings == null)
+        {
+            _settings = StatsManager.Instance.Settings;
+            _saveSettings = StatsManager.Instance.SaveSettings;
+        }
+        else
+        {
+            _settings = settings;
+            _saveSettings = saveSettings ?? (() => { });
+        }
+
+        _desktopPet = new DesktopPetView(webViewProfileFolder, readInputFrame);
+        _desktopPet.ErrorOccurred += ShowDesktopPetError;
+        DesktopPetHost.Children.Add(_desktopPet);
+
+        Topmost = _settings.FloatingStatsTopmost;
         UpdateDragCursor();
-        ApplyFontSettings();
-        ApplyLayoutSettings();
 
         SourceInitialized += OnSourceInitialized;
         Loaded += OnLoaded;
         Closed += OnClosed;
         LocationChanged += OnLocationChanged;
         SizeChanged += OnSizeChanged;
-        ThemeManager.Instance.ThemeChanged += OnThemeChanged;
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
     }
 
@@ -61,20 +98,14 @@ public partial class FloatingStatsWindow : Window
 
     public void ApplyBehaviorSettings()
     {
-        var settings = StatsManager.Instance.Settings;
-        Topmost = settings.FloatingStatsTopmost;
+        Topmost = _settings.FloatingStatsTopmost;
         UpdateDragCursor();
-        ApplyFontSettings();
-        if (ApplyLayoutSettings())
-        {
-            EnsureVisiblePosition();
-        }
+        EnsureVisiblePosition();
     }
 
     private void OnSourceInitialized(object? sender, EventArgs e)
     {
         NativeInterop.HideWindowFromSwitcher(new WindowInteropHelper(this).Handle);
-        ApplySurface();
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -82,19 +113,15 @@ public partial class FloatingStatsWindow : Window
         RestorePosition();
         RootBorder.ContextMenu = BuildContextMenu();
         _isLoaded = true;
+        LoadDesktopPetModel();
     }
 
     private void OnClosed(object? sender, EventArgs e)
     {
         _positionSaveTimer.Stop();
-        ThemeManager.Instance.ThemeChanged -= OnThemeChanged;
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
-        _viewModel.Cleanup();
-    }
-
-    private void OnThemeChanged()
-    {
-        Dispatcher.BeginInvoke(new Action(ApplySurface));
+        _desktopPet.ErrorOccurred -= ShowDesktopPetError;
+        _desktopPet.Dispose();
     }
 
     private void OnDisplaySettingsChanged(object? sender, EventArgs e)
@@ -102,18 +129,155 @@ public partial class FloatingStatsWindow : Window
         Dispatcher.BeginInvoke(new Action(EnsureVisiblePosition));
     }
 
-    private void ApplySurface()
+    private void ChooseModelButton_Click(object sender, RoutedEventArgs e)
     {
-        RootBorder.SetResourceReference(
-            Border.BackgroundProperty,
-            "FloatingStatsSurfaceBrush");
-        RootBorder.SetResourceReference(
-            Border.BorderBrushProperty,
-            "TrayPopupBorderBrush");
+        ChooseModel();
     }
 
-    private void RootBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    /// <summary>
+    /// Asks for the extracted model folder. The Mver package root is the folder the user picks, so
+    /// choosing a model file inside <c>img/standard/&lt;model&gt;</c> is never necessary and the
+    /// configured key overlays are found. An imported model clears the preset selection.
+    /// </summary>
+    private void ChooseModel()
     {
+        var selectedFolder = _chooseModelFolder != null
+            ? _chooseModelFolder()
+            : ShowFolderPicker();
+
+        if (string.IsNullOrWhiteSpace(selectedFolder))
+        {
+            return;
+        }
+
+        if (!TryApplyDesktopPetModel(selectedFolder))
+        {
+            return;
+        }
+
+        _activePresetId = null;
+        _settings.DesktopPetPresetId = null;
+        _settings.DesktopPetModelPath = selectedFolder;
+        _saveSettings();
+    }
+
+    private string? ShowFolderPicker()
+    {
+        using var dialog = new Forms.FolderBrowserDialog
+        {
+            Description = "选择解压后的模型文件夹（包含 config.json 或 .model3.json）",
+            ShowNewFolderButton = false
+        };
+
+        return dialog.ShowDialog() == Forms.DialogResult.OK ? dialog.SelectedPath : null;
+    }
+
+    private void LoadDesktopPetModel()
+    {
+        // A valid preset id wins: bundled models ship with the app, so a moved program directory
+        // or a fresh machine still loads the same preset.
+        if (_settings.DesktopPetPresetId != null &&
+            TryApplyDesktopPetModel(ResolvePresetPath(_settings.DesktopPetPresetId)))
+        {
+            _activePresetId = _settings.DesktopPetPresetId;
+            return;
+        }
+
+        // No (valid) preset: keep the legacy custom path while it still loads.
+        if (_settings.DesktopPetModelPath != null && TryApplyDesktopPetModel(_settings.DesktopPetModelPath))
+        {
+            _activePresetId = null;
+            return;
+        }
+
+        // First launch or a lost model: fall back to the bundled DS preset without any picker.
+        if (TryApplyDesktopPetModel(ResolvePresetPath(Presets[0].Id)))
+        {
+            _activePresetId = Presets[0].Id;
+            return;
+        }
+
+        _activePresetId = null;
+        ShowDesktopPetChooser();
+    }
+
+    private static string? ResolvePresetPath(string? presetId)
+    {
+        if (string.IsNullOrWhiteSpace(presetId))
+        {
+            return null;
+        }
+
+        foreach (var preset in Presets)
+        {
+            if (string.Equals(preset.Id, presetId, StringComparison.Ordinal))
+            {
+                return Path.Combine(
+                    AppDomain.CurrentDomain.BaseDirectory,
+                    "Resources", "DesktopPet", "Models", preset.Id);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Loads and shows a model, reporting success so callers only persist choices that actually
+    /// work. A blank path is a silent failure (no error page for the "nothing chosen yet" state).
+    /// </summary>
+    private bool TryApplyDesktopPetModel(string? rootPath)
+    {
+        string? error = null;
+        if (string.IsNullOrWhiteSpace(rootPath) ||
+            !DesktopPetModelLoader.TryLoad(rootPath, out var package, out error))
+        {
+            if (!string.IsNullOrWhiteSpace(rootPath))
+            {
+                ShowDesktopPetError(error ?? "模型加载失败");
+            }
+
+            return false;
+        }
+
+        DesktopPetErrorText.Visibility = Visibility.Collapsed;
+        ChooseModelButton.Visibility = Visibility.Collapsed;
+        _desktopPet.Visibility = Visibility.Visible;
+        _desktopPet.LoadModel(package);
+        return true;
+    }
+
+    /// <summary>Selects a bundled preset; only a successful load persists the choice.</summary>
+    private void SelectPreset(string presetId)
+    {
+        var presetPath = ResolvePresetPath(presetId);
+        if (presetPath == null || !TryApplyDesktopPetModel(presetPath))
+        {
+            return;
+        }
+
+        _activePresetId = presetId;
+        _settings.DesktopPetPresetId = presetId;
+        _settings.DesktopPetModelPath = null;
+        _saveSettings();
+    }
+
+    private void ShowDesktopPetChooser()
+    {
+        _desktopPet.LoadModel(null);
+        _desktopPet.Visibility = Visibility.Collapsed;
+        DesktopPetErrorText.Visibility = Visibility.Collapsed;
+        ChooseModelButton.Visibility = Visibility.Visible;
+    }
+
+    private void ShowDesktopPetError(string message)
+    {
+        _desktopPet.Visibility = Visibility.Collapsed;
+        ChooseModelButton.Visibility = Visibility.Visible;
+        DesktopPetErrorText.Text = message;
+        DesktopPetErrorText.Visibility = Visibility.Visible;
+    }
+
+    private void RootBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)    {
         if (e.ChangedButton != MouseButton.Left)
         {
             return;
@@ -126,7 +290,7 @@ public partial class FloatingStatsWindow : Window
             return;
         }
 
-        if (StatsManager.Instance.Settings.FloatingStatsPositionLocked)
+        if (_settings.FloatingStatsPositionLocked)
         {
             return;
         }
@@ -152,18 +316,49 @@ public partial class FloatingStatsWindow : Window
         {
             Header = KeyStats.Properties.Strings.FloatingStats_LockPosition,
             IsCheckable = true,
-            IsChecked = StatsManager.Instance.Settings.FloatingStatsPositionLocked
+            IsChecked = _settings.FloatingStatsPositionLocked
         };
         lockPositionItem.Click += (_, _) =>
         {
             var isLocked = lockPositionItem.IsChecked;
-            var settings = StatsManager.Instance.Settings;
+            var settings = _settings;
             settings.FloatingStatsPositionLocked = isLocked;
-            StatsManager.Instance.SaveSettings();
+            _saveSettings();
             ApplyBehaviorSettings();
         };
         menu.Items.Add(lockPositionItem);
 
+        // The two fixed presets are root-level leaf items: the production MenuItem template has
+        // no ItemsPresenter/Popup, so a nested submenu can never open (a real user entry blocker).
+        foreach (var preset in Presets)
+        {
+            var presetItem = new MenuItem
+            {
+                Header = preset.Title,
+                IsCheckable = true,
+                Tag = preset.Id,
+                IsChecked = string.Equals(_activePresetId, preset.Id, StringComparison.Ordinal)
+            };
+            presetItem.Click += (_, _) =>
+            {
+                // Clicking the already-active preset must not unselect it.
+                if (!string.Equals(_activePresetId, preset.Id, StringComparison.Ordinal))
+                {
+                    SelectPreset(preset.Id);
+                }
+
+                presetItem.IsChecked = string.Equals(_activePresetId, preset.Id, StringComparison.Ordinal);
+                SyncPresetChecks(menu);
+            };
+            menu.Items.Add(presetItem);
+        }
+
+        var importItem = new MenuItem
+        {
+            Header = "导入其他模型…"
+        };
+        importItem.Click += (_, _) => ChooseModel();
+        menu.Items.Add(importItem);
         var hideItem = new MenuItem
         {
             Header = KeyStats.Properties.Strings.FloatingStats_Hide
@@ -186,76 +381,38 @@ public partial class FloatingStatsWindow : Window
         menu.Items.Add(settingsItem);
         menu.Opened += (_, _) =>
         {
-            lockPositionItem.IsChecked = StatsManager.Instance.Settings.FloatingStatsPositionLocked;
+            lockPositionItem.IsChecked = _settings.FloatingStatsPositionLocked;
+            SyncPresetChecks(menu);
         };
 
         return menu;
     }
 
+    /// <summary>Marks only the currently loaded preset; called when the menu opens and after a click.</summary>
+    private void SyncPresetChecks(System.Windows.Controls.ItemsControl itemsHost)
+    {
+        foreach (var item in itemsHost.Items)
+        {
+            if (item is MenuItem menuItem && menuItem.Tag is string presetId)
+            {
+                menuItem.IsChecked = string.Equals(presetId, _activePresetId, StringComparison.Ordinal);
+            }
+        }
+    }
+
     private void UpdateDragCursor()
     {
-        RootBorder.Cursor = StatsManager.Instance.Settings.FloatingStatsPositionLocked
+        RootBorder.Cursor = _settings.FloatingStatsPositionLocked
             ? Cursors.Arrow
             : Cursors.SizeAll;
     }
 
-    private void ApplyFontSettings()
-    {
-        var fontSize = StatsManager.Instance.Settings.FloatingStatsFontSize;
-        SinglePrimaryValueTextBlock.FontSize = fontSize;
-        SingleSecondaryValueTextBlock.FontSize = fontSize;
-        DoublePrimaryValueTextBlock.FontSize = fontSize;
-        DoubleSecondaryValueTextBlock.FontSize = fontSize;
-    }
-
-    private bool ApplyLayoutSettings()
-    {
-        var settings = StatsManager.Instance.Settings;
-        var useDoubleRow = string.Equals(
-            settings.FloatingStatsLayoutMode,
-            AppSettings.FloatingStatsDoubleRowLayoutMode,
-            StringComparison.Ordinal);
-        var layoutScale = settings.FloatingStatsFontSize / (double)AppSettings.FloatingStatsLayoutBaseFontSize;
-        var baseHeight = useDoubleRow ? DoubleRowHeight : SingleRowHeight;
-        var targetHeight = Math.Round(baseHeight * layoutScale, MidpointRounding.AwayFromZero);
-        var layoutChanged = DoubleRowLayout.Visibility != (useDoubleRow ? Visibility.Visible : Visibility.Collapsed);
-        var sizeChanged = layoutChanged || !Height.Equals(targetHeight);
-
-        SingleRowLayout.Visibility = useDoubleRow ? Visibility.Collapsed : Visibility.Visible;
-        DoubleRowLayout.Visibility = useDoubleRow ? Visibility.Visible : Visibility.Collapsed;
-        // Width follows content (SizeToContent) so large values are never truncated.
-        Height = targetHeight;
-        return sizeChanged;
-    }
-
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (!_isLoaded || !e.WidthChanged)
+        // The window has a fixed size now, so only a display change can move it out of bounds.
+        if (!_isLoaded)
         {
             return;
-        }
-
-        // Keep the right edge fixed when the window sits on the right half of its screen,
-        // so it grows toward the screen center instead of jumping when the value widens.
-        var widthDelta = e.NewSize.Width - e.PreviousSize.Width;
-        var workingAreas = GetWorkingAreasInDips();
-        var previousBounds = new Rect(Left, Top, e.PreviousSize.Width, Height);
-        var area = FindWorkingAreaByDeviceName(GetCurrentMonitorDeviceName(), workingAreas)
-            ?? FindBestWorkingArea(previousBounds, workingAreas);
-        var areaCenterX = area != null
-            ? area.Bounds.Left + area.Bounds.Width / 2
-            : SystemParameters.WorkArea.Left + SystemParameters.WorkArea.Width / 2;
-        if (previousBounds.Left + previousBounds.Width / 2 > areaCenterX)
-        {
-            _isRestoringPosition = true;
-            try
-            {
-                Left -= widthDelta;
-            }
-            finally
-            {
-                _isRestoringPosition = false;
-            }
         }
 
         EnsureVisiblePosition();
@@ -281,7 +438,7 @@ public partial class FloatingStatsWindow : Window
 
     private void SaveCurrentPosition()
     {
-        var settings = StatsManager.Instance.Settings;
+        var settings = _settings;
         settings.FloatingStatsLeft = Left;
         settings.FloatingStatsTop = Top;
         var monitorDeviceName = GetCurrentMonitorDeviceName();
@@ -289,7 +446,7 @@ public partial class FloatingStatsWindow : Window
         {
             settings.FloatingStatsMonitorDeviceName = monitorDeviceName;
         }
-        StatsManager.Instance.SaveSettings();
+        _saveSettings();
     }
 
     private void RestorePosition()
@@ -298,7 +455,7 @@ public partial class FloatingStatsWindow : Window
         var primaryArea = workingAreas.Count > 0
             ? workingAreas[0]
             : new WorkingAreaInfo(string.Empty, SystemParameters.WorkArea);
-        var settings = StatsManager.Instance.Settings;
+        var settings = _settings;
         var savedArea = FindWorkingAreaByDeviceName(
             settings.FloatingStatsMonitorDeviceName,
             workingAreas);

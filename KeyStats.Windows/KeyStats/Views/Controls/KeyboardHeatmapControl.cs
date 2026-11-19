@@ -11,6 +11,8 @@ namespace KeyStats.Views.Controls;
 
 public class KeyboardHeatmapControl : FrameworkElement
 {
+    private static readonly FontFamily MonoFontFamily = new("Consolas");
+
     private sealed class KeySpec
     {
         public string Id { get; }
@@ -538,7 +540,7 @@ public class KeyboardHeatmapControl : FrameworkElement
         }
 
         var fontSize = Math.Max(9, Math.Min(13, scale * 0.28));
-        var text = CreateText(key.Label, fontSize, FontWeights.Medium, CreateBrush(textColor), "Segoe UI");
+        var text = CreateText(key.Label, fontSize, FontWeights.Medium, CreateBrush(textColor), KeyStats.Helpers.AppFonts.Primary);
 
         var horizontalInset = Math.Max(4, scale * 0.16);
         var verticalInset = Math.Max(3, scale * 0.14);
@@ -565,8 +567,8 @@ public class KeyboardHeatmapControl : FrameworkElement
 
         var upperSize = Math.Max(9, Math.Min(11, scale * 0.23));
         var lowerSize = Math.Max(9.5, Math.Min(13, scale * 0.28));
-        var upperText = CreateText(upper, upperSize, FontWeights.Regular, upperBrush, "Segoe UI");
-        var lowerText = CreateText(lower, lowerSize, FontWeights.Medium, lowerBrush, "Segoe UI");
+        var upperText = CreateText(upper, upperSize, FontWeights.Regular, upperBrush, KeyStats.Helpers.AppFonts.Primary);
+        var lowerText = CreateText(lower, lowerSize, FontWeights.Medium, lowerBrush, KeyStats.Helpers.AppFonts.Primary);
 
         var horizontalInset = Math.Max(4, scale * 0.16);
         var bottomInset = Math.Max(2.5, scale * 0.11);
@@ -613,13 +615,13 @@ public class KeyboardHeatmapControl : FrameworkElement
 
         var fontSize = Math.Max(7, Math.Min(10.5, scale * 0.20));
         var text = FormatCountText(count);
-        var formatted = CreateText(text, fontSize, FontWeights.SemiBold, brush, "Consolas");
+        var formatted = CreateText(text, fontSize, FontWeights.SemiBold, brush, MonoFontFamily);
 
         var fullWidth = formatted.Width + horizontalPadding * 2;
         if (fullWidth > maxBadgeWidth)
         {
             text = CompactCountText(count);
-            formatted = CreateText(text, fontSize, FontWeights.SemiBold, brush, "Consolas");
+            formatted = CreateText(text, fontSize, FontWeights.SemiBold, brush, MonoFontFamily);
         }
 
         var badgeHeight = Math.Max(Math.Max(12, scale * 0.30), formatted.Height + verticalPadding * 2);
@@ -628,7 +630,7 @@ public class KeyboardHeatmapControl : FrameworkElement
         {
             badgeWidth = maxBadgeWidth;
             text = CompactCountText(count, 3);
-            formatted = CreateText(text, fontSize, FontWeights.SemiBold, brush, "Consolas");
+            formatted = CreateText(text, fontSize, FontWeights.SemiBold, brush, MonoFontFamily);
         }
 
         var badgeRect = new Rect(
@@ -760,9 +762,9 @@ public class KeyboardHeatmapControl : FrameworkElement
         return brush;
     }
 
-    private FormattedText CreateText(string value, double fontSize, FontWeight weight, Brush brush, string fontFamily)
+    private FormattedText CreateText(string value, double fontSize, FontWeight weight, Brush brush, FontFamily fontFamily)
     {
-        var typeface = new Typeface(new FontFamily(fontFamily), FontStyles.Normal, weight, FontStretches.Normal);
+        var typeface = new Typeface(fontFamily, FontStyles.Normal, weight, FontStretches.Normal);
         return new FormattedText(
             value,
             CultureInfo.CurrentUICulture,

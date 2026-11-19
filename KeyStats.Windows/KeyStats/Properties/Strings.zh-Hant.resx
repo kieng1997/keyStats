@@ -139,6 +139,8 @@
   <data name="Settings_DistanceCalibrationDesc" xml:space="preserve"><value>校準滑鼠移動距離係數</value></data>
   <data name="Settings_MouseScrollCalibration" xml:space="preserve"><value>滑鼠捲動計算校準</value></data>
   <data name="Settings_MouseScrollCalibrationDesc" xml:space="preserve"><value>根據螢幕解析度和尺寸計算 PPI</value></data>
+  <data name="Settings_ScrollStepsPerRevolution" xml:space="preserve"><value>滾輪每圈步數</value></data>
+  <data name="Settings_ScrollStepsPerRevolutionDesc" xml:space="preserve"><value>滾輪滾動換算為圈數的除數（預設 24）</value></data>
   <data name="Settings_VersionFormat" xml:space="preserve"><value>目前版本 {0}</value></data>
   <data name="Settings_OpenGitHubFailedMessage" xml:space="preserve"><value>無法開啟 GitHub 頁面。</value></data>
   <data name="Settings_CheckUpdate" xml:space="preserve"><value>檢查更新</value></data>
@@ -163,6 +165,11 @@
   <data name="Click_Forward" xml:space="preserve"><value>前進</value></data>
   <data name="Stats_MouseDistance" xml:space="preserve"><value>滑鼠移動</value></data>
   <data name="Stats_ScrollDistance" xml:space="preserve"><value>滾輪滾動</value></data>
+  <data name="Stats_ScrollUpDistance" xml:space="preserve"><value>滾輪上滾</value></data>
+  <data name="Stats_ScrollDownDistance" xml:space="preserve"><value>滾輪下滾</value></data>
+  <data name="Stats_ScrollTotalDistance" xml:space="preserve"><value>滾輪總滾動</value></data>
+  <data name="Stats_ScrollRevolutions" xml:space="preserve"><value>約滾圈數</value></data>
+  <data name="Stats_ScrollRevolutionsFormat" xml:space="preserve"><value>{0} 圈</value></data>
   <data name="Stats_KeyBreakdown" xml:space="preserve"><value>按鍵分佈</value></data>
   <data name="KeyBreakdown_Empty" xml:space="preserve"><value>暫無按鍵資料</value></data>
   <data name="Stats_KeyboardHeatmap" xml:space="preserve"><value>鍵盤熱力圖</value></data>
