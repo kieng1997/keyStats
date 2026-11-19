@@ -244,6 +244,10 @@
                 </StackPanel>
             </Border>
 
+            <Border Style="{DynamicResource CardBorder}" Margin="0,0,0,4" Padding="8,7">
+                <controls:StatItemControl Icon="&#xE8AB;" Title="{x:Static p:Strings.Stats_MouseDistance}" Value="{Binding MouseDistance}"/>
+            </Border>
+
             <Grid Margin="0,0,0,4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -251,10 +255,10 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Border Grid.Column="0" Style="{DynamicResource CardBorder}" Padding="8,7">
-                    <controls:StatItemControl Icon="&#xE8AB;" Title="{x:Static p:Strings.Stats_MouseDistance}" Value="{Binding MouseDistance}"/>
+                    <controls:StatItemControl Icon="&#xE74A;" Title="{x:Static p:Strings.Stats_ScrollUpDistance}" Value="{Binding ScrollUpDistance}"/>
                 </Border>
                 <Border Grid.Column="2" Style="{DynamicResource CardBorder}" Padding="8,7">
-                    <controls:StatItemControl Icon="&#xE74A;" Title="{x:Static p:Strings.Stats_ScrollDistance}" Value="{Binding ScrollDistance}"/>
+                    <controls:StatItemControl Icon="&#xE74B;" Title="{x:Static p:Strings.Stats_ScrollDownDistance}" Value="{Binding ScrollDownDistance}"/>
                 </Border>
             </Grid>
 

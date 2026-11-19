@@ -74,6 +74,9 @@ namespace KeyStats.Services
 
         public string FormatCalibratedDistance(double distance) => $"{distance:F1} cm";
 
+        public string FormatCalibratedScrollWithRevolutions(double distance) =>
+            $"{FormatCalibratedDistance(distance)} ({(long)Math.Floor(Math.Max(0, distance) / 24.0)} rev)";
+
         public string FormatHistoryValue(HistoryMetric metric, double value) =>
             metric is HistoryMetric.KeyPresses or HistoryMetric.Clicks
                 ? FormatNumber((int)value)

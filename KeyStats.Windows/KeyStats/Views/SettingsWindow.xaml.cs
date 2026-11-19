@@ -3,8 +3,10 @@ using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using KeyStats.Helpers;
@@ -23,6 +25,7 @@ public partial class SettingsWindow : Window
     private const double WindowEdgeMargin = 16;
     private static readonly HttpClient UpdateHttpClient = CreateUpdateHttpClient();
     private bool _isLoadingFloatingStats = true;
+    private bool _isLoadingScrollSteps = true;
 
     private static HttpClient CreateUpdateHttpClient()
     {
@@ -40,6 +43,7 @@ public partial class SettingsWindow : Window
         Closed += OnClosed;
         LocationChanged += OnLocationChanged;
         ThemeManager.Instance.ThemeChanged += OnThemeChanged;
+        DataObject.AddPastingHandler(ScrollStepsPerRevolutionTextBox, NumericOnly_Pasting);
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -48,6 +52,7 @@ public partial class SettingsWindow : Window
         ApplyWindowBackdrop();
         LoadFloatingStatsControls();
         LoadHeatmapColorSchemeControls();
+        LoadScrollStepsControls();
         if (App.CurrentApp?.SyncCoordinator != null)
         {
             App.CurrentApp.SyncCoordinator.StatusChanged += OnSyncStatusChanged;
@@ -59,6 +64,7 @@ public partial class SettingsWindow : Window
     {
         ThemeManager.Instance.ThemeChanged -= OnThemeChanged;
         LocationChanged -= OnLocationChanged;
+        DataObject.RemovePastingHandler(ScrollStepsPerRevolutionTextBox, NumericOnly_Pasting);
         if (App.CurrentApp?.SyncCoordinator != null)
         {
             App.CurrentApp.SyncCoordinator.StatusChanged -= OnSyncStatusChanged;
@@ -424,6 +430,62 @@ public partial class SettingsWindow : Window
     private void MouseScrollCalibration_Click(object sender, RoutedEventArgs e)
     {
         new MouseScrollCalibrationWindow { Owner = this }.ShowDialog();
+    }
+
+    private void LoadScrollStepsControls()
+    {
+        _isLoadingScrollSteps = true;
+        ScrollStepsPerRevolutionTextBox.Text = StatsManager.Instance.GetMouseScrollStepsPerRevolution().ToString();
+        _isLoadingScrollSteps = false;
+    }
+
+    private void NumericOnly_PreviewTextInput(object sender, TextCompositionEventArgs e)
+    {
+        e.Handled = !Regex.IsMatch(e.Text, @"^[0-9]+$");
+    }
+
+    private void NumericOnly_Pasting(object sender, DataObjectPastingEventArgs e)
+    {
+        if (!e.DataObject.GetDataPresent(DataFormats.Text) ||
+            e.DataObject.GetData(DataFormats.Text) is not string text ||
+            !Regex.IsMatch(text.Trim(), @"^[0-9]+$"))
+        {
+            e.CancelCommand();
+        }
+    }
+
+    private void ScrollStepsPerRevolution_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isLoadingScrollSteps)
+        {
+            return;
+        }
+
+        if (int.TryParse(ScrollStepsPerRevolutionTextBox.Text.Trim(), out var steps) && steps > 0)
+        {
+            StatsManager.Instance.UpdateMouseScrollStepsPerRevolution(steps);
+        }
+    }
+
+    private void ScrollStepsPerRevolution_LostFocus(object sender, RoutedEventArgs e)
+    {
+        var current = StatsManager.Instance.GetMouseScrollStepsPerRevolution();
+        if (!int.TryParse(ScrollStepsPerRevolutionTextBox.Text.Trim(), out var steps) || steps <= 0)
+        {
+            _isLoadingScrollSteps = true;
+            ScrollStepsPerRevolutionTextBox.Text = current.ToString();
+            _isLoadingScrollSteps = false;
+            return;
+        }
+
+        if (ScrollStepsPerRevolutionTextBox.Text != steps.ToString())
+        {
+            _isLoadingScrollSteps = true;
+            ScrollStepsPerRevolutionTextBox.Text = steps.ToString();
+            _isLoadingScrollSteps = false;
+        }
+
+        StatsManager.Instance.UpdateMouseScrollStepsPerRevolution(steps);
     }
 
     private void OpenGitHub_Click(object sender, RoutedEventArgs e)

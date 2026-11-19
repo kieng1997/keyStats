@@ -38,6 +38,12 @@ public class DailyStats
     [JsonPropertyName("scrollDistance")]
     public double ScrollDistance { get; set; }
 
+    [JsonPropertyName("scrollUpDistance")]
+    public double ScrollUpDistance { get; set; }
+
+    [JsonPropertyName("scrollDownDistance")]
+    public double ScrollDownDistance { get; set; }
+
     [JsonPropertyName("peakKPS")]
     public double PeakKPS { get; set; }
 
@@ -77,15 +83,56 @@ public class DailyStats
         }
     }
 
-    public string FormattedScrollDistance
+    [JsonIgnore]
+    public double EffectiveScrollUpDistance => SanitizeNonNegative(ScrollUpDistance);
+
+    [JsonIgnore]
+    public double EffectiveScrollDownDistance
     {
         get
         {
-            if (ScrollDistance >= 10000)
-            {
-                return $"{ScrollDistance / 1000:F1} k";
-            }
-            return $"{ScrollDistance:F0} px";
+            var up = SanitizeNonNegative(ScrollUpDistance);
+            var down = SanitizeNonNegative(ScrollDownDistance);
+            var total = SanitizeNonNegative(ScrollDistance);
+            var unaccounted = total - (up + down);
+            return unaccounted > 0 ? down + unaccounted : down;
         }
+    }
+
+    [JsonIgnore]
+    public double EffectiveTotalScrollDistance => EffectiveScrollUpDistance + EffectiveScrollDownDistance;
+
+    public void NormalizeScrollDirections()
+    {
+        var up = EffectiveScrollUpDistance;
+        var down = EffectiveScrollDownDistance;
+        ScrollUpDistance = up;
+        ScrollDownDistance = down;
+        ScrollDistance = up + down;
+    }
+
+    public string FormattedScrollDistance => FormatScrollPixels(EffectiveTotalScrollDistance);
+
+    public string FormattedScrollUpDistance => FormatScrollPixels(EffectiveScrollUpDistance);
+
+    public string FormattedScrollDownDistance => FormatScrollPixels(EffectiveScrollDownDistance);
+
+    public static string FormatScrollPixels(double distance)
+    {
+        var sanitized = SanitizeNonNegative(distance);
+        if (sanitized >= 10000)
+        {
+            return $"{sanitized / 1000:F1} k";
+        }
+        return $"{sanitized:F0} px";
+    }
+
+    private static double SanitizeNonNegative(double value)
+    {
+        if (double.IsNaN(value) || double.IsInfinity(value) || value < 0)
+        {
+            return 0;
+        }
+        return value;
     }
 }

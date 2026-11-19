@@ -57,7 +57,7 @@ public class InputMonitorService : IDisposable
     public event Action<string, string>? SideBackMouseClicked;
     public event Action<string, string>? SideForwardMouseClicked;
     public event Action<double>? MouseMoved;
-    public event Action<double, string, string>? MouseScrolled;
+    public event Action<double, bool, string, string>? MouseScrolled;
 
     private InputMonitorService() { }
 
@@ -413,6 +413,7 @@ public class InputMonitorService : IDisposable
                 case NativeInterop.WM_MOUSEHWHEEL:
                     {
                         var mouseData = hookStruct.mouseData;
+                        var isVerticalWheel = message == NativeInterop.WM_MOUSEWHEEL;
                         var hWnd = NativeInterop.GetForegroundWindow();
                         NativeInterop.GetWindowThreadProcessId(hWnd, out uint pid);
                         ThreadPool.QueueUserWorkItem(_ =>
@@ -420,7 +421,7 @@ public class InputMonitorService : IDisposable
                             InvokeSubscriber("MouseScrolled", () =>
                             {
                                 var activeApp = ActiveWindowManager.ResolveAppInfo(hWnd, pid);
-                                HandleScroll(mouseData, activeApp.AppName, activeApp.DisplayName);
+                                HandleScroll(mouseData, isVerticalWheel, activeApp.AppName, activeApp.DisplayName);
                             });
                         });
                     }
@@ -477,11 +478,23 @@ public class InputMonitorService : IDisposable
         ThreadPool.QueueUserWorkItem(_ => InvokeSubscriber("MouseMoved", () => MouseMoved?.Invoke(distance)));
     }
 
-    private void HandleScroll(uint mouseData, string appName, string displayName)
+    public static (double Distance, bool IsScrollUp) ParseScrollData(uint mouseData, bool isVerticalWheel)
     {
         var delta = NativeInterop.HiWord((int)mouseData);
         var scrollDistance = Math.Abs(delta) / 120.0;
-        MouseScrolled?.Invoke(scrollDistance, appName, displayName);
+        var isScrollUp = isVerticalWheel && delta > 0;
+        return (scrollDistance, isScrollUp);
+    }
+
+    private void HandleScroll(uint mouseData, bool isVerticalWheel, string appName, string displayName)
+    {
+        var (scrollDistance, isScrollUp) = ParseScrollData(mouseData, isVerticalWheel);
+        if (scrollDistance <= 0)
+        {
+            return;
+        }
+
+        MouseScrolled?.Invoke(scrollDistance, isScrollUp, appName, displayName);
     }
 
     private static void InvokeSubscriber(string eventName, Action invoke)

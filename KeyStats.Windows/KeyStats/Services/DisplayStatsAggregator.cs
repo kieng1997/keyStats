@@ -165,7 +165,9 @@ public sealed class DisplayStatsAggregator
             SideBackClicks = Math.Max(0, source.SideBackClicks),
             SideForwardClicks = Math.Max(0, source.SideForwardClicks),
             MouseDistance = Math.Max(0, source.MouseDistance),
-            ScrollDistance = Math.Max(0, source.ScrollDistance),
+            ScrollDistance = source.EffectiveTotalScrollDistance,
+            ScrollUpDistance = source.EffectiveScrollUpDistance,
+            ScrollDownDistance = source.EffectiveScrollDownDistance,
             PeakKPS = Math.Max(0, source.PeakKPS),
             PeakCPS = Math.Max(0, source.PeakCPS),
             AppStats = source.AppStats.ToDictionary(pair => pair.Key, pair => new AppStats(pair.Value))

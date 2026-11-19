@@ -309,6 +309,32 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                    <TextBlock Text="{x:Static p:Strings.Settings_ScrollStepsPerRevolution}" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    <TextBlock Text="{x:Static p:Strings.Settings_ScrollStepsPerRevolutionDesc}" FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+                <TextBox x:Name="ScrollStepsPerRevolutionTextBox"
+                         Grid.Column="1"
+                         Width="72"
+                         MaxLength="6"
+                         TextAlignment="Center"
+                         VerticalAlignment="Center"
+                         VerticalContentAlignment="Center"
+                         Padding="4,4"
+                         PreviewTextInput="NumericOnly_PreviewTextInput"
+                         TextChanged="ScrollStepsPerRevolution_TextChanged"
+                         LostFocus="ScrollStepsPerRevolution_LostFocus"/>
+            </Grid>
+        </Border>
+
+        <Border Style="{DynamicResource CardBorder}" Margin="0,0,0,4" Padding="14,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0">
                     <TextBlock Text="{x:Static p:Strings.Settings_Language}"
                                FontSize="13" FontWeight="SemiBold"

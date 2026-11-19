@@ -6,6 +6,7 @@ namespace KeyStats.Models;
 public class AppSettings
 {
     public const double DefaultMouseMetersPerPixel = 0.00005;
+    public const int DefaultMouseScrollStepsPerRevolution = 24;
     public const string FloatingStatsSingleRowLayoutMode = "singleRow";
     public const string FloatingStatsDoubleRowLayoutMode = "doubleRow";
     public const int FloatingStatsLayoutBaseFontSize = 11;
@@ -42,6 +43,9 @@ public class AppSettings
 
     [JsonPropertyName("mouseScrollPpi")]
     public int MouseScrollPpi { get; set; } = 92;
+
+    [JsonPropertyName("mouseScrollStepsPerRevolution")]
+    public int MouseScrollStepsPerRevolution { get; set; } = DefaultMouseScrollStepsPerRevolution;
 
     [JsonPropertyName("keyHistorySelectedRangeIndex")]
     public int KeyHistorySelectedRangeIndex { get; set; } = 1;
