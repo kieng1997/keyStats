@@ -65,8 +65,12 @@
             <SolidColorBrush x:Key="MenuItemHoverBrush" Color="#0A000000"/>
             <SolidColorBrush x:Key="ChartAreaBrush" Color="#15808080"/>
 
+            <!-- MiSans is embedded; Segoe UI is the per-glyph fallback. Icon glyphs set their own FontFamily. -->
+            <FontFamily x:Key="AppFontFamily">./Resources/Fonts/#MiSans Medium, Segoe UI</FontFamily>
+
             <!-- Global Styles -->
             <Style TargetType="Window">
+                <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
                 <Setter Property="UseLayoutRounding" Value="True"/>
                 <Setter Property="SnapsToDevicePixels" Value="True"/>
                 <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
@@ -395,6 +399,7 @@
 
             <!-- Windows 11 Context Menu Style -->
             <Style TargetType="ContextMenu">
+                <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
                 <Setter Property="Background" Value="{DynamicResource ContextMenuBackgroundBrush}"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}"/>
                 <Setter Property="BorderThickness" Value="1"/>

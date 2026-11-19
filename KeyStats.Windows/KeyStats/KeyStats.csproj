@@ -57,6 +57,7 @@
   <ItemGroup>
     <Resource Include="Resources\Icons\*.ico" />
     <Resource Include="Resources\Mouse\*.png" />
+    <Resource Include="Resources\Fonts\*.ttf" />
     <EmbeddedResource Include="Resources\Icons\tray-icon.png" />
   </ItemGroup>
 
