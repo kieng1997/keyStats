@@ -94,7 +94,7 @@
                         <TextBlock Text="{x:Static p:Strings.Stats_MouseDistance}" FontSize="10"
                                    Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0">
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" Margin="0,3,0,0">
                         <TextBlock Text="{Binding HistoryMouseDistance}" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimaryBrush}"/>
                     </Viewbox>
@@ -109,7 +109,7 @@
                         <TextBlock Text="{x:Static p:Strings.Stats_ScrollTotalDistance}" FontSize="10"
                                    Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0">
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" Margin="0,3,0,0">
                         <TextBlock Text="{Binding HistoryScrollDistance}" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimaryBrush}"/>
                     </Viewbox>
@@ -124,7 +124,7 @@
                         <TextBlock Text="{x:Static p:Strings.Stats_ScrollRevolutions}" FontSize="10"
                                    Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0">
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" Margin="0,3,0,0">
                         <TextBlock Text="{Binding HistoryScrollRevolutions}" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimaryBrush}"/>
                     </Viewbox>
