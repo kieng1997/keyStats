@@ -121,6 +121,10 @@
   <data name="Settings_HeatmapCustomHigh" xml:space="preserve"><value>最高色</value></data>
   <data name="Settings_HeatmapPreviewLess" xml:space="preserve"><value>少</value></data>
   <data name="Settings_HeatmapPreviewMore" xml:space="preserve"><value>多</value></data>
+  <data name="Settings_Theme" xml:space="preserve"><value>主題</value></data>
+  <data name="Settings_Theme_System" xml:space="preserve"><value>跟隨系統</value></data>
+  <data name="Settings_Theme_Light" xml:space="preserve"><value>白色模式</value></data>
+  <data name="Settings_Theme_Dark" xml:space="preserve"><value>黑色模式</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>語言</value></data>
   <data name="Settings_LanguageDescription" xml:space="preserve"><value>應用程式介面的顯示語言</value></data>
   <data name="Settings_Language_System" xml:space="preserve"><value>跟隨系統</value></data>

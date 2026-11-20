@@ -102,7 +102,7 @@ public partial class App : System.Windows.Application
             EnsureStartMenuShortcut();
 
             Console.WriteLine("Applying theme...");
-            ThemeManager.Instance.Initialize();
+            ThemeManager.Instance.Initialize(preliminarySettings.DarkThemeOverride);
             RegisterSystemEventHandlers();
 
             Console.WriteLine("Initializing services...");

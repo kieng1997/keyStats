@@ -39,6 +39,8 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         MaxHeight = System.Math.Max(1, SystemParameters.WorkArea.Height - WindowEdgeMargin * 2);
         VersionTextBlock.Text = string.Format(KeyStats.Properties.Strings.Settings_VersionFormat, GetDisplayVersion());
+        ThemeComboBox.SelectedValue = StatsManager.Instance.Settings.ThemePreference;
+        ThemeComboBox.SelectionChanged += ThemeComboBox_SelectionChanged;
         Loaded += OnLoaded;
         Closed += OnClosed;
         LocationChanged += OnLocationChanged;
@@ -575,6 +577,18 @@ public partial class SettingsWindow : Window
     {
         UpdateStatusTextBlock.Text = text;
         UpdateStatusTextBlock.Visibility = Visibility.Visible;
+    }
+
+    private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ThemeComboBox.SelectedItem is not ComboBoxItem { Tag: string preference }) return;
+
+        var manager = StatsManager.Instance;
+        if (preference == manager.Settings.ThemePreference) return;
+
+        manager.Settings.ThemePreference = preference;
+        manager.SaveSettings();
+        ThemeManager.Instance.SetDarkThemeOverride(manager.Settings.DarkThemeOverride);
     }
 
     private bool _isInitializingLanguage = true;

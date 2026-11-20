@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:p="clr-namespace:KeyStats.Properties"
         xmlns:controls="clr-namespace:KeyStats.Views.Controls"
+        xmlns:models="clr-namespace:KeyStats.Models"
         Title="{x:Static p:Strings.Settings_WindowTitle}"
         Width="420" SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
@@ -326,6 +327,25 @@
                          PreviewTextInput="NumericOnly_PreviewTextInput"
                          TextChanged="ScrollStepsPerRevolution_TextChanged"
                          LostFocus="ScrollStepsPerRevolution_LostFocus"/>
+            </Grid>
+        </Border>
+
+        <Border Style="{DynamicResource CardBorder}" Margin="0,0,0,4" Padding="14,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{x:Static p:Strings.Settings_Theme}"
+                           FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                <ComboBox Grid.Column="1" x:Name="ThemeComboBox"
+                          MinWidth="140" VerticalAlignment="Center" SelectedValuePath="Tag"
+                          AutomationProperties.Name="{x:Static p:Strings.Settings_Theme}">
+                    <ComboBoxItem Content="{x:Static p:Strings.Settings_Theme_System}" Tag="{x:Static models:AppSettings.ThemeSystem}"/>
+                    <ComboBoxItem Content="{x:Static p:Strings.Settings_Theme_Light}" Tag="{x:Static models:AppSettings.ThemeLight}"/>
+                    <ComboBoxItem Content="{x:Static p:Strings.Settings_Theme_Dark}" Tag="{x:Static models:AppSettings.ThemeDark}"/>
+                </ComboBox>
             </Grid>
         </Border>
 

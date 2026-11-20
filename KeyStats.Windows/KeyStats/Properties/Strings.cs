@@ -67,6 +67,10 @@ public static class Strings
     public static string Settings_HeatmapCustomHigh => Get(nameof(Settings_HeatmapCustomHigh));
     public static string Settings_HeatmapPreviewLess => Get(nameof(Settings_HeatmapPreviewLess));
     public static string Settings_HeatmapPreviewMore => Get(nameof(Settings_HeatmapPreviewMore));
+    public static string Settings_Theme => Get(nameof(Settings_Theme));
+    public static string Settings_Theme_System => Get(nameof(Settings_Theme_System));
+    public static string Settings_Theme_Light => Get(nameof(Settings_Theme_Light));
+    public static string Settings_Theme_Dark => Get(nameof(Settings_Theme_Dark));
     public static string Settings_Language => Get(nameof(Settings_Language));
     public static string Settings_LanguageDescription => Get(nameof(Settings_LanguageDescription));
     public static string Settings_Language_System => Get(nameof(Settings_Language_System));
