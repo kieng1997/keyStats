@@ -194,19 +194,19 @@
                         <Border Grid.Column="0" Background="{DynamicResource SubtleFillBrush}" CornerRadius="7" Padding="10,8">
                             <StackPanel>
                                 <TextBlock Text="{x:Static p:Strings.Click_Left}" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                <TextBlock Text="{Binding LeftClicks}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding LeftClicks}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" TextAlignment="Center" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="2" Background="{DynamicResource SubtleFillBrush}" CornerRadius="7" Padding="10,8">
                             <StackPanel>
                                 <TextBlock Text="{x:Static p:Strings.Click_Middle}" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                <TextBlock Text="{Binding MiddleClicks}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding MiddleClicks}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" TextAlignment="Center" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="4" Background="{DynamicResource SubtleFillBrush}" CornerRadius="7" Padding="10,8">
                             <StackPanel>
                                 <TextBlock Text="{x:Static p:Strings.Click_Right}" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                <TextBlock Text="{Binding RightClicks}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding RightClicks}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" TextAlignment="Center" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -231,13 +231,13 @@
                         <Border Grid.Column="0" Background="{DynamicResource SubtleFillBrush}" CornerRadius="7" Padding="10,8">
                             <StackPanel>
                                 <TextBlock Text="{x:Static p:Strings.Click_Back}" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                <TextBlock Text="{Binding SideBackClicks}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding SideBackClicks}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" TextAlignment="Center" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="2" Background="{DynamicResource SubtleFillBrush}" CornerRadius="7" Padding="10,8">
                             <StackPanel>
                                 <TextBlock Text="{x:Static p:Strings.Click_Forward}" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                <TextBlock Text="{Binding SideForwardClicks}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding SideForwardClicks}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" TextAlignment="Center" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -260,7 +260,7 @@
                             <TextBlock Text="{x:Static p:Strings.Stats_MouseDistance}" FontSize="10"
                                        Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         </StackPanel>
-                        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0">
+                        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" Margin="0,3,0,0">
                             <TextBlock Text="{Binding MouseDistance}" FontSize="15" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"/>
                         </Viewbox>
@@ -274,7 +274,7 @@
                             <TextBlock Text="{x:Static p:Strings.Stats_ScrollUpDistance}" FontSize="10"
                                        Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         </StackPanel>
-                        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0">
+                        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" Margin="0,3,0,0">
                             <TextBlock Text="{Binding ScrollUpDistance}" FontSize="15" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"/>
                         </Viewbox>
@@ -288,7 +288,7 @@
                             <TextBlock Text="{x:Static p:Strings.Stats_ScrollDownDistance}" FontSize="10"
                                        Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         </StackPanel>
-                        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0">
+                        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" Margin="0,3,0,0">
                             <TextBlock Text="{Binding ScrollDownDistance}" FontSize="15" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"/>
                         </Viewbox>
