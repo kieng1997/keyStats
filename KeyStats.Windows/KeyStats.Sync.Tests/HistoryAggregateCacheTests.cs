@@ -185,7 +185,7 @@ public sealed class HistoryAggregateCacheTests
         Assert.AreSame(keyEntry, GetEntry(manager, "_keyHistoryCache", StatsManager.KeyHistoryRange.All),
             "Today's counters changing must not rebuild the historical prefix.");
 
-        // The 2s mirror of today into History (and the stats file write) must not invalidate history.
+        // Mirroring today into History (and the stats file write) must not invalidate history.
         InvokePrivate(manager, "SaveStats");
         Assert.IsTrue(data.History.ContainsKey(Key(Today)));
         Assert.AreEqual(revisionAfterFirst, manager.HistoryRevision);

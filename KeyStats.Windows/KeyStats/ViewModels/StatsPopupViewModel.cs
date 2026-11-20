@@ -544,8 +544,6 @@ public class StatsPopupViewModel : ViewModelBase
 
     private void Quit()
     {
-        StatsManager.Instance.FlushPendingSave();
-        InputMonitorService.Instance.StopMonitoring();
         Application.Current.Shutdown();
     }
 

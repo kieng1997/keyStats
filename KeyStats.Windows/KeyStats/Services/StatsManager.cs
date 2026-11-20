@@ -67,7 +67,7 @@ public class StatsManager : IDisposable
     private Timer? _mouseMoveUpdateTimer;
     private Timer? _settingsSaveTimer;
 
-    private readonly double _saveInterval = 2000; // 2 seconds
+    private readonly double _saveInterval = 5_000;
     private readonly double _statsUpdateDebounceInterval = 300; // 0.3 seconds
     private readonly double _mouseMoveIdleUpdateInterval = 350; // 0.35 seconds
     private readonly double _settingsSaveInterval = 500; // 0.5 seconds — collapses per-keystroke text-changed bursts
@@ -722,7 +722,7 @@ public class StatsManager : IDisposable
             // Mirror today's counters into the in-memory History dict so query paths
             // that read from History stay in sync. The history *file* is no longer
             // re-written here — past-day data only changes at day rollover / import /
-            // reset / shutdown, so writing it every 2s is wasted I/O.
+            // reset / shutdown, so writing it on every save is wasted I/O.
             RecordCurrentStatsToHistory();
             statsSnapshot = CloneDailyStats(CurrentStats, CurrentStats.Date.Date);
         }

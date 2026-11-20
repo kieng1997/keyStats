@@ -7,7 +7,6 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using KeyStats.Helpers;
-using KeyStats.Services;
 using KeyStats.Views;
 using DrawingIcon = System.Drawing.Icon;
 using PixelFormat = System.Drawing.Imaging.PixelFormat;
@@ -225,8 +224,6 @@ public class TrayIconViewModel : ViewModelBase
     private void Quit()
     {
         PrepareForExit();
-        StatsManager.Instance.FlushPendingSave();
-        InputMonitorService.Instance.StopMonitoring();
         Application.Current.Shutdown();
     }
 
