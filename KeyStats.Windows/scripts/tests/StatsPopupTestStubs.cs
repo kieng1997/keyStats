@@ -166,7 +166,7 @@ namespace KeyStats.Properties
     /// <summary>Localization resource stand-in; values match Strings.resx.</summary>
     public static class Strings
     {
-        public static string Stats_HistoricalPeakFormat => "{0} (all-time high: {1})";
+        public static string Stats_HistoricalPeakLabel => "All-time peak";
         public static string History_TotalFormat => "Total: {0}";
     }
 }
