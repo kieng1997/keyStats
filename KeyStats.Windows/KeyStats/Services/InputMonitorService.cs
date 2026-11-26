@@ -13,6 +13,13 @@ public class InputMonitorService : IDisposable
     private static InputMonitorService? _instance;
     public static InputMonitorService Instance => _instance ??= new InputMonitorService();
 
+    private volatile bool _ignoreBlockedKeyboardEvents;
+    internal bool IgnoreBlockedKeyboardEvents
+    {
+        get => _ignoreBlockedKeyboardEvents;
+        set => _ignoreBlockedKeyboardEvents = value;
+    }
+
     private IntPtr _keyboardHookId = IntPtr.Zero;
     private IntPtr _mouseHookId = IntPtr.Zero;
     private NativeInterop.LowLevelKeyboardProc? _keyboardProc;
@@ -296,47 +303,68 @@ public class InputMonitorService : IDisposable
 
     private IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode >= 0)
+        var ignoreBlocked = IgnoreBlockedKeyboardEvents;
+        var nextResult = ignoreBlocked
+            ? NativeInterop.CallNextHookEx(_keyboardHookId, nCode, wParam, lParam)
+            : IntPtr.Zero;
+
+        if (!ignoreBlocked || nCode >= 0)
         {
-            Interlocked.Exchange(ref _lastKeyboardHookCallbackTick, Environment.TickCount);
-
-            var message = (int)wParam;
-            var hookStruct = Marshal.PtrToStructure<NativeInterop.KBDLLHOOKSTRUCT>(lParam);
-            var vkCode = (int)hookStruct.vkCode;
-
-            if (message == NativeInterop.WM_KEYDOWN || message == NativeInterop.WM_SYSKEYDOWN)
-            {
-                bool isNewKey;
-                lock (_pressedKeys)
-                {
-                    isNewKey = _pressedKeys.Add(vkCode);
-                }
-
-                if (isNewKey)
-                {
-                    var keyName = KeyNameMapper.GetKeyName(vkCode, hookStruct.scanCode, hookStruct.flags);
-                    var hWnd = NativeInterop.GetForegroundWindow();
-                    NativeInterop.GetWindowThreadProcessId(hWnd, out uint pid);
-                    ThreadPool.QueueUserWorkItem(_ =>
-                    {
-                        InvokeSubscriber("KeyPressed", () =>
-                        {
-                            var activeApp = ActiveWindowManager.ResolveAppInfo(hWnd, pid);
-                            KeyPressed?.Invoke(keyName, activeApp.AppName, activeApp.DisplayName);
-                        });
-                    });
-                }
-            }
-            else if (message == NativeInterop.WM_KEYUP || message == NativeInterop.WM_SYSKEYUP)
-            {
-                lock (_pressedKeys)
-                {
-                    _pressedKeys.Remove(vkCode);
-                }
-            }
+            ProcessKeyboardEvent(nCode, wParam, lParam, ignoreBlocked && nextResult != IntPtr.Zero);
         }
 
-        return NativeInterop.CallNextHookEx(_keyboardHookId, nCode, wParam, lParam);
+        return ignoreBlocked ? nextResult : NativeInterop.CallNextHookEx(_keyboardHookId, nCode, wParam, lParam);
+    }
+
+    /// <summary>
+    /// Updates pressed-key state and reports whether this event is a new keypress worth counting.
+    /// A blocked keydown is ignored; a blocked keyup still clears held state.
+    /// </summary>
+    internal static bool TryTransitionKeyboardState(int message, int vkCode, bool blocked, HashSet<int> pressedKeys)
+    {
+        if (message == NativeInterop.WM_KEYUP || message == NativeInterop.WM_SYSKEYUP)
+        {
+            lock (pressedKeys)
+            {
+                pressedKeys.Remove(vkCode);
+            }
+            return false;
+        }
+
+        if (blocked || (message != NativeInterop.WM_KEYDOWN && message != NativeInterop.WM_SYSKEYDOWN))
+        {
+            return false;
+        }
+
+        lock (pressedKeys)
+        {
+            return pressedKeys.Add(vkCode);
+        }
+    }
+
+    private void ProcessKeyboardEvent(int nCode, IntPtr wParam, IntPtr lParam, bool blocked = false)
+    {
+        if (nCode < 0) return;
+
+        Interlocked.Exchange(ref _lastKeyboardHookCallbackTick, Environment.TickCount);
+
+        var message = (int)wParam;
+        var hookStruct = Marshal.PtrToStructure<NativeInterop.KBDLLHOOKSTRUCT>(lParam);
+        var vkCode = (int)hookStruct.vkCode;
+
+        if (!TryTransitionKeyboardState(message, vkCode, blocked, _pressedKeys)) return;
+
+        var keyName = KeyNameMapper.GetKeyName(vkCode, hookStruct.scanCode, hookStruct.flags);
+        var hWnd = NativeInterop.GetForegroundWindow();
+        NativeInterop.GetWindowThreadProcessId(hWnd, out uint pid);
+        ThreadPool.QueueUserWorkItem(_ =>
+        {
+            InvokeSubscriber("KeyPressed", () =>
+            {
+                var activeApp = ActiveWindowManager.ResolveAppInfo(hWnd, pid);
+                KeyPressed?.Invoke(keyName, activeApp.AppName, activeApp.DisplayName);
+            });
+        });
     }
 
     private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)

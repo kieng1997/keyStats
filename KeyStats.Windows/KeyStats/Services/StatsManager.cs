@@ -153,6 +153,7 @@ public class StatsManager : IDisposable
     private void SetupInputMonitor()
     {
         var monitor = InputMonitorService.Instance;
+        monitor.IgnoreBlockedKeyboardEvents = Settings.IgnoreBlockedKeyboardEvents;
         monitor.KeyPressed += OnKeyPressed;
         monitor.LeftMouseClicked += OnLeftClick;
         monitor.RightMouseClicked += OnRightClick;

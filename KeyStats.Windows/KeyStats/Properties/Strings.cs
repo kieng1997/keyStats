@@ -85,6 +85,8 @@ public static class Strings
     public static string Settings_DataImportExportDesc => Get(nameof(Settings_DataImportExportDesc));
     public static string Settings_Notifications => Get(nameof(Settings_Notifications));
     public static string Settings_NotificationsDesc => Get(nameof(Settings_NotificationsDesc));
+    public static string Settings_IgnoreBlockedKeyboardEvents => Get(nameof(Settings_IgnoreBlockedKeyboardEvents));
+    public static string Settings_IgnoreBlockedKeyboardEventsDesc => Get(nameof(Settings_IgnoreBlockedKeyboardEventsDesc));
     public static string Settings_Backup => Get(nameof(Settings_Backup));
     public static string Settings_BackupDesc => Get(nameof(Settings_BackupDesc));
     public static string Settings_BackupInterval => Get(nameof(Settings_BackupInterval));

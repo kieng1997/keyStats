@@ -41,6 +41,7 @@ public partial class SettingsWindow : Window
         VersionTextBlock.Text = string.Format(KeyStats.Properties.Strings.Settings_VersionFormat, GetDisplayVersion());
         ThemeComboBox.SelectedValue = StatsManager.Instance.Settings.ThemePreference;
         ThemeComboBox.SelectionChanged += ThemeComboBox_SelectionChanged;
+        IgnoreBlockedKeyboardEventsCheckBox.IsChecked = StatsManager.Instance.Settings.IgnoreBlockedKeyboardEvents;
         Loaded += OnLoaded;
         Closed += OnClosed;
         Closing += OnClosing;
@@ -206,6 +207,15 @@ public partial class SettingsWindow : Window
     private void NotificationSettings_Click(object sender, RoutedEventArgs e)
     {
         App.CurrentApp?.ShowNotificationSettings();
+    }
+
+    private void IgnoreBlockedKeyboardEvents_Click(object sender, RoutedEventArgs e)
+    {
+        var manager = StatsManager.Instance;
+        var enabled = IgnoreBlockedKeyboardEventsCheckBox.IsChecked == true;
+        manager.Settings.IgnoreBlockedKeyboardEvents = enabled;
+        InputMonitorService.Instance.IgnoreBlockedKeyboardEvents = enabled;
+        manager.SaveSettings();
     }
 
     private void LoadFloatingStatsControls()

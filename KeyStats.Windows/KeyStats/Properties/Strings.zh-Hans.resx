@@ -139,6 +139,8 @@
   <data name="Settings_DataImportExportDesc" xml:space="preserve"><value>以 JSON 导入或导出这台设备的本机统计</value></data>
   <data name="Settings_Notifications" xml:space="preserve"><value>通知设置</value></data>
   <data name="Settings_NotificationsDesc" xml:space="preserve"><value>设置按键/点击阈值通知</value></data>
+  <data name="Settings_IgnoreBlockedKeyboardEvents" xml:space="preserve"><value>忽略被拦截的按键</value></data>
+  <data name="Settings_IgnoreBlockedKeyboardEventsDesc" xml:space="preserve"><value>开启后，不统计被 Kanata 等改键工具拦截的原按键，避免重复计数。</value></data>
   <data name="Settings_Backup" xml:space="preserve"><value>本地备份</value></data>
   <data name="Settings_BackupDesc" xml:space="preserve"><value>应用运行时将本机统计备份到 %LOCALAPPDATA%\KeyStats\backups，按天数保留最新备份。可通过“导入数据”恢复。</value></data>
   <data name="Settings_BackupInterval" xml:space="preserve"><value>备份间隔（天）</value></data>

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.Serialization;
+using KeyStats.Helpers;
 using KeyStats.Services;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -114,6 +115,34 @@ public sealed class InputMonitorHealthTests
 
         Assert.IsFalse(InvokeShouldRecoverHooks(42_000 + FreshElapsedMs, true, true, keyboardTick, mouseTick));
         Assert.IsTrue(InvokeShouldRecoverHooks(42_000 + StaleElapsedMs, true, true, keyboardTick, mouseTick));
+    }
+
+    [TestMethod]
+    public void KeyboardEventTransition_IgnoresBlockedDownButClearsBlockedUp()
+    {
+        var service = (InputMonitorService)Activator.CreateInstance(typeof(InputMonitorService), nonPublic: true)!;
+        Assert.IsFalse(service.IgnoreBlockedKeyboardEvents, "Ignoring blocked keyboard events must default to off");
+        service.IgnoreBlockedKeyboardEvents = true;
+        Assert.IsTrue(service.IgnoreBlockedKeyboardEvents);
+
+        var pressedKeys = new HashSet<int>();
+        const int vk = 0x41;
+
+        Assert.IsFalse(InputMonitorService.TryTransitionKeyboardState(NativeInterop.WM_KEYDOWN, vk, blocked: true, pressedKeys),
+            "A blocked keydown must not be counted");
+        Assert.IsFalse(pressedKeys.Contains(vk), "A blocked keydown must not mark the key as pressed");
+
+        Assert.IsTrue(InputMonitorService.TryTransitionKeyboardState(NativeInterop.WM_KEYDOWN, vk, blocked: false, pressedKeys),
+            "A regular keydown must be counted once");
+        Assert.IsFalse(InputMonitorService.TryTransitionKeyboardState(NativeInterop.WM_SYSKEYDOWN, vk, blocked: false, pressedKeys),
+            "A repeated keydown, including a system keydown, must not be counted again");
+
+        Assert.IsFalse(InputMonitorService.TryTransitionKeyboardState(NativeInterop.WM_SYSKEYUP, vk, blocked: true, pressedKeys),
+            "A blocked keyup must not be counted");
+        Assert.IsFalse(pressedKeys.Contains(vk), "A blocked keyup must clear the pressed-key state");
+
+        Assert.IsFalse(InputMonitorService.TryTransitionKeyboardState(NativeInterop.WM_KEYUP, vk, blocked: false, pressedKeys),
+            "A keyup for an already released key must not be counted");
     }
 
     [TestMethod]

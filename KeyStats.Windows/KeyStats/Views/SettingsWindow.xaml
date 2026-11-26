@@ -105,6 +105,19 @@
 
         <Border Style="{DynamicResource CardBorder}" Margin="0,0,0,8" Padding="14,12">
             <StackPanel>
+                <CheckBox x:Name="IgnoreBlockedKeyboardEventsCheckBox"
+                          Content="{x:Static p:Strings.Settings_IgnoreBlockedKeyboardEvents}"
+                          Foreground="{DynamicResource TextPrimaryBrush}"
+                          FontSize="13" FontWeight="SemiBold"
+                          Click="IgnoreBlockedKeyboardEvents_Click"
+                          AutomationProperties.Name="{x:Static p:Strings.Settings_IgnoreBlockedKeyboardEvents}"/>
+                <TextBlock Text="{x:Static p:Strings.Settings_IgnoreBlockedKeyboardEventsDesc}"
+                           Style="{DynamicResource CardDescriptionText}" Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <Border Style="{DynamicResource CardBorder}" Margin="0,0,0,8" Padding="14,12">
+            <StackPanel>
                 <TextBlock Text="{x:Static p:Strings.Settings_Backup}" FontSize="13" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"/>
                 <TextBlock Text="{x:Static p:Strings.Settings_BackupDesc}" FontSize="12"

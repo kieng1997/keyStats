@@ -40,6 +40,9 @@ public class AppSettings
     [JsonPropertyName("clickNotifyThreshold")]
     public int ClickNotifyThreshold { get; set; } = 1000;
 
+    [JsonPropertyName("ignoreBlockedKeyboardEvents")]
+    public bool IgnoreBlockedKeyboardEvents { get; set; }
+
     [JsonPropertyName("backupIntervalDays")]
     public int BackupIntervalDays
     {
