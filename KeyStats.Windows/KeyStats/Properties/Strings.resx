@@ -121,6 +121,10 @@
   <data name="Settings_HeatmapCustomHigh" xml:space="preserve"><value>High color</value></data>
   <data name="Settings_HeatmapPreviewLess" xml:space="preserve"><value>Less</value></data>
   <data name="Settings_HeatmapPreviewMore" xml:space="preserve"><value>More</value></data>
+  <data name="Settings_Theme" xml:space="preserve"><value>Theme</value></data>
+  <data name="Settings_Theme_System" xml:space="preserve"><value>Follow system</value></data>
+  <data name="Settings_Theme_Light" xml:space="preserve"><value>Light mode</value></data>
+  <data name="Settings_Theme_Dark" xml:space="preserve"><value>Dark mode</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Language</value></data>
   <data name="Settings_LanguageDescription" xml:space="preserve"><value>Display language for the app interface</value></data>
   <data name="Settings_Language_System" xml:space="preserve"><value>System</value></data>
@@ -135,6 +139,12 @@
   <data name="Settings_DataImportExportDesc" xml:space="preserve"><value>Import or export this device's local statistics as JSON</value></data>
   <data name="Settings_Notifications" xml:space="preserve"><value>Notifications</value></data>
   <data name="Settings_NotificationsDesc" xml:space="preserve"><value>Configure key/click threshold notifications</value></data>
+  <data name="Settings_IgnoreBlockedKeyboardEvents" xml:space="preserve"><value>Ignore blocked keys</value></data>
+  <data name="Settings_IgnoreBlockedKeyboardEventsDesc" xml:space="preserve"><value>When enabled, keys suppressed by remappers such as Kanata are not counted, avoiding duplicate counts. Change takes effect immediately.</value></data>
+  <data name="Settings_Backup" xml:space="preserve"><value>Local Backup</value></data>
+  <data name="Settings_BackupDesc" xml:space="preserve"><value>Backs up local statistics while the app is running to %LOCALAPPDATA%\KeyStats\backups, retaining the latest copies. Restore a backup with Import Data.</value></data>
+  <data name="Settings_BackupInterval" xml:space="preserve"><value>Interval (days)</value></data>
+  <data name="Settings_BackupRetention" xml:space="preserve"><value>Retention (days)</value></data>
   <data name="Settings_DistanceCalibration" xml:space="preserve"><value>Distance Calibration</value></data>
   <data name="Settings_DistanceCalibrationDesc" xml:space="preserve"><value>Calibrate the mouse movement coefficient</value></data>
   <data name="Settings_MouseScrollCalibration" xml:space="preserve"><value>Mouse Scroll Calculation Calibration</value></data>
@@ -188,7 +198,7 @@
   <data name="Metric_Scroll" xml:space="preserve"><value>Mouse scrolling</value></data>
   <data name="Stats_PeakKpsTooltipLabel" xml:space="preserve"><value>Peak Keys/sec (KPS)</value></data>
   <data name="Stats_PeakCpsTooltipLabel" xml:space="preserve"><value>Peak Clicks/sec (CPS)</value></data>
-  <data name="Stats_HistoricalPeakFormat" xml:space="preserve"><value>{0} (all-time high: {1})</value></data>
+  <data name="Stats_HistoricalPeakLabel" xml:space="preserve"><value>All-time peak</value></data>
 
   <data name="AppStats_WindowTitle" xml:space="preserve"><value>App Stats</value></data>
   <data name="AppStats_HeaderTitle" xml:space="preserve"><value>App Stats</value></data>

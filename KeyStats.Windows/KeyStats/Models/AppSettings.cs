@@ -13,6 +13,8 @@ public class AppSettings
     public const int DefaultFloatingStatsFontSize = 12;
     public const int MinimumFloatingStatsFontSize = 9;
     public const int MaximumFloatingStatsFontSize = 22;
+    public const int DefaultBackupIntervalDays = 1;
+    public const int DefaultBackupRetentionDays = 7;
     public const string HeatmapColorSchemeDefault = "default";
     public const string HeatmapColorSchemeWarm = "warm";
     public const string HeatmapColorSchemeSpectrum = "spectrum";
@@ -21,7 +23,13 @@ public class AppSettings
     public const string HeatmapColorSchemePurple = "purple";
     public const string HeatmapColorSchemeRose = "rose";
     public const string HeatmapColorSchemeCustom = "custom";
+    public const string ThemeSystem = "system";
+    public const string ThemeLight = "light";
+    public const string ThemeDark = "dark";
     private int _floatingStatsFontSize = DefaultFloatingStatsFontSize;
+    private string _themePreference = ThemeSystem;
+    private int _backupIntervalDays = DefaultBackupIntervalDays;
+    private int _backupRetentionDays = DefaultBackupRetentionDays;
 
     [JsonPropertyName("notificationsEnabled")]
     public bool NotificationsEnabled { get; set; }
@@ -31,6 +39,23 @@ public class AppSettings
 
     [JsonPropertyName("clickNotifyThreshold")]
     public int ClickNotifyThreshold { get; set; } = 1000;
+
+    [JsonPropertyName("ignoreBlockedKeyboardEvents")]
+    public bool IgnoreBlockedKeyboardEvents { get; set; }
+
+    [JsonPropertyName("backupIntervalDays")]
+    public int BackupIntervalDays
+    {
+        get => _backupIntervalDays;
+        set => _backupIntervalDays = value > 0 ? value : DefaultBackupIntervalDays;
+    }
+
+    [JsonPropertyName("backupRetentionDays")]
+    public int BackupRetentionDays
+    {
+        get => _backupRetentionDays;
+        set => _backupRetentionDays = value > 0 ? value : DefaultBackupRetentionDays;
+    }
 
     [JsonPropertyName("launchAtStartup")]
     public bool LaunchAtStartup { get; set; }
@@ -127,6 +152,20 @@ public class AppSettings
 
     [JsonPropertyName("languagePreference")]
     public string LanguagePreference { get; set; } = "system";  // "system" | "zh-Hans" | "zh-Hant" | "en"
+
+    [JsonPropertyName("themePreference")]
+    public string ThemePreference
+    {
+        get => _themePreference;
+        set => _themePreference = value is ThemeLight or ThemeDark ? value : ThemeSystem;
+    }
+
+    internal bool? DarkThemeOverride => ThemePreference switch
+    {
+        ThemeDark => true,
+        ThemeLight => false,
+        _ => null
+    };
 
     /// <summary>
     /// Absolute local path of the desktop pet model folder. Null means no model chosen yet.

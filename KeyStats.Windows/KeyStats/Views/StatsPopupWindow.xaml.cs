@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media.Animation;
 using System.Windows.Forms;
 using System.Windows.Threading;
@@ -38,6 +39,7 @@ public partial class StatsPopupWindow : Window
     {
         Console.WriteLine("StatsPopupWindow constructor...");
         InitializeComponent();
+        PeakPopup.CustomPopupPlacementCallback = PlacePeakPopup;
         Console.WriteLine("InitializeComponent done");
 
         _viewModel = (StatsPopupViewModel)DataContext;
@@ -253,6 +255,30 @@ public partial class StatsPopupWindow : Window
         }
     }
 
+    private CustomPopupPlacement[] PlacePeakPopup(
+        System.Windows.Size popupSize,
+        System.Windows.Size targetSize,
+        System.Windows.Point offset)
+    {
+        const double shadowMargin = 10;
+        const double verticalGap = 4;
+
+        var transformToDevice = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformToDevice;
+        var dpiScaleX = transformToDevice?.M11 ?? 1.0;
+        var dpiScaleY = transformToDevice?.M22 ?? dpiScaleX;
+
+        // Align the visible popup border's right edge with the PeakToggle pill rather than the drop-shadow margin.
+        var x = targetSize.Width - popupSize.Width + shadowMargin * dpiScaleX;
+        var belowY = targetSize.Height - shadowMargin * dpiScaleY + verticalGap * dpiScaleY;
+        var aboveY = -popupSize.Height + shadowMargin * dpiScaleY - verticalGap * dpiScaleY;
+
+        return new[]
+        {
+            new CustomPopupPlacement(new System.Windows.Point(x, belowY), PopupPrimaryAxis.Horizontal),
+            new CustomPopupPlacement(new System.Windows.Point(x, aboveY), PopupPrimaryAxis.Horizontal)
+        };
+    }
+
     private void StartSlideOutAnimation()
     {
         var offset = GetSlideOffset();
@@ -435,6 +461,7 @@ public partial class StatsPopupWindow : Window
 
         if (_isWindowMode)
         {
+            ActiveAppsList.Template = (System.Windows.Controls.ControlTemplate)ActiveAppsList.FindResource("WindowedAppStatsListTemplate");
             PopupSectionsGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition
             {
                 Width = new GridLength(1, GridUnitType.Star)

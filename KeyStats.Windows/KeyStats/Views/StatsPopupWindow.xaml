@@ -63,31 +63,40 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="{x:Static p:Strings.Stats_TodayHeader}" FontSize="14" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                           Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                 <ToggleButton x:Name="PeakToggle" Grid.Column="2"
                               IsChecked="{Binding IsPeakPopupOpen, Mode=TwoWay}"
                               Background="Transparent" BorderThickness="0"
-                              Cursor="Hand" Padding="4,2" VerticalAlignment="Center">
+                              Cursor="Hand" Padding="7,3" VerticalAlignment="Center">
                     <ToggleButton.Template>
                         <ControlTemplate TargetType="ToggleButton">
-                            <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="12"
-                                               Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center"/>
-                                    <StackPanel Orientation="Horizontal" Margin="3,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding DataContext.PeakKPS, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                   FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                        <TextBlock Text="{Binding DataContext.PeakCPS, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                   Margin="8,0,0,0" FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                    </StackPanel>
+                            <Border x:Name="Bd"
+                                    Background="{DynamicResource SubtleFillBrush}"
+                                    BorderBrush="{DynamicResource DividerBrush}"
+                                    BorderThickness="0.5"
+                                    CornerRadius="5"
+                                    Padding="{TemplateBinding Padding}"
+                                    SnapsToDevicePixels="True">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                               Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                    <TextBlock Text="{Binding DataContext.PeakKPS, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               FontSize="11" FontWeight="SemiBold" Typography.NumeralAlignment="Tabular"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="/" FontSize="10.5" Margin="1.5,0"
+                                               Foreground="{DynamicResource TextTertiaryBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding DataContext.PeakCPS, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               FontSize="11" FontWeight="SemiBold" Typography.NumeralAlignment="Tabular"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillBrush}"/>
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleHoverBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillBrush}"/>
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HeatmapSegmentedSelectedBrush}"/>
+                                    <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -99,42 +108,69 @@
                        StaysOpen="False"
                        AllowsTransparency="True"
                        PopupAnimation="Fade"
-                       Placement="Bottom"
-                       PlacementTarget="{Binding ElementName=PeakToggle}"
-                       HorizontalOffset="-40">
+                       Placement="Custom"
+                       PlacementTarget="{Binding ElementName=PeakToggle}">
                     <Border Background="{DynamicResource SurfaceBrush}"
                             BorderBrush="{DynamicResource DividerBrush}"
-                            BorderThickness="1" CornerRadius="8"
-                            Padding="14,10" Margin="8">
-                        <StackPanel>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="16"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" MinWidth="70">
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                        <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                            BorderThickness="1" CornerRadius="10"
+                            Padding="10" Margin="10"
+                            SnapsToDevicePixels="True">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="14" ShadowDepth="3" Direction="270" Opacity="0.20" Color="Black"/>
+                        </Border.Effect>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Style="{DynamicResource CardBorder}" Padding="11,9" MinWidth="128">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE765;" FontFamily="Segoe MDL2 Assets" FontSize="10"
                                                    Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                         <TextBlock Text="{x:Static p:Strings.Stats_PeakKpsTooltipLabel}" FontSize="10"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                     </StackPanel>
-                                    <TextBlock Text="{Binding PeakKPS}" FontSize="20" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" Margin="0,6,0,7">
+                                        <TextBlock Text="{Binding PeakKPS}" FontSize="22" FontWeight="SemiBold"
+                                                   Typography.NumeralAlignment="Tabular"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                    </Viewbox>
+                                    <Border Height="1" Background="{DynamicResource DividerBrush}" Opacity="0.7" Margin="0,0,0,6"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="{x:Static p:Strings.Stats_HistoricalPeakLabel}" FontSize="9.5"
+                                                   Foreground="{DynamicResource TextTertiaryBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding HistoricalPeakKPS}" FontSize="10.5" FontWeight="SemiBold"
+                                                   Typography.NumeralAlignment="Tabular"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                    </StackPanel>
                                 </StackPanel>
-                                <StackPanel Grid.Column="2" MinWidth="70">
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                        <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                            </Border>
+                            <Border Grid.Column="2" Style="{DynamicResource CardBorder}" Padding="11,9" MinWidth="128">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE8B0;" FontFamily="Segoe MDL2 Assets" FontSize="10"
                                                    Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                         <TextBlock Text="{x:Static p:Strings.Stats_PeakCpsTooltipLabel}" FontSize="10"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                     </StackPanel>
-                                    <TextBlock Text="{Binding PeakCPS}" FontSize="20" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" Margin="0,6,0,7">
+                                        <TextBlock Text="{Binding PeakCPS}" FontSize="22" FontWeight="SemiBold"
+                                                   Typography.NumeralAlignment="Tabular"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                    </Viewbox>
+                                    <Border Height="1" Background="{DynamicResource DividerBrush}" Opacity="0.7" Margin="0,0,0,6"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="{x:Static p:Strings.Stats_HistoricalPeakLabel}" FontSize="9.5"
+                                                   Foreground="{DynamicResource TextTertiaryBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding HistoricalPeakCPS}" FontSize="10.5" FontWeight="SemiBold"
+                                                   Typography.NumeralAlignment="Tabular"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                    </StackPanel>
                                 </StackPanel>
-                            </Grid>
-                        </StackPanel>
+                            </Border>
+                        </Grid>
                     </Border>
                 </Popup>
             </Grid>
@@ -194,19 +230,19 @@
                         <Border Grid.Column="0" Background="{DynamicResource SubtleFillBrush}" CornerRadius="7" Padding="10,8">
                             <StackPanel>
                                 <TextBlock Text="{x:Static p:Strings.Click_Left}" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                <TextBlock Text="{Binding LeftClicks}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding LeftClicks}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" TextAlignment="Center" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="2" Background="{DynamicResource SubtleFillBrush}" CornerRadius="7" Padding="10,8">
                             <StackPanel>
                                 <TextBlock Text="{x:Static p:Strings.Click_Middle}" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                <TextBlock Text="{Binding MiddleClicks}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding MiddleClicks}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" TextAlignment="Center" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="4" Background="{DynamicResource SubtleFillBrush}" CornerRadius="7" Padding="10,8">
                             <StackPanel>
                                 <TextBlock Text="{x:Static p:Strings.Click_Right}" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                <TextBlock Text="{Binding RightClicks}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding RightClicks}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" TextAlignment="Center" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -231,13 +267,13 @@
                         <Border Grid.Column="0" Background="{DynamicResource SubtleFillBrush}" CornerRadius="7" Padding="10,8">
                             <StackPanel>
                                 <TextBlock Text="{x:Static p:Strings.Click_Back}" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                <TextBlock Text="{Binding SideBackClicks}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding SideBackClicks}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" TextAlignment="Center" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="2" Background="{DynamicResource SubtleFillBrush}" CornerRadius="7" Padding="10,8">
                             <StackPanel>
                                 <TextBlock Text="{x:Static p:Strings.Click_Forward}" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                <TextBlock Text="{Binding SideForwardClicks}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2,0,0"/>
+                                <TextBlock Text="{Binding SideForwardClicks}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" TextAlignment="Center" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -260,7 +296,7 @@
                             <TextBlock Text="{x:Static p:Strings.Stats_MouseDistance}" FontSize="10"
                                        Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         </StackPanel>
-                        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0">
+                        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" Margin="0,3,0,0">
                             <TextBlock Text="{Binding MouseDistance}" FontSize="15" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"/>
                         </Viewbox>
@@ -274,7 +310,7 @@
                             <TextBlock Text="{x:Static p:Strings.Stats_ScrollUpDistance}" FontSize="10"
                                        Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         </StackPanel>
-                        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0">
+                        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" Margin="0,3,0,0">
                             <TextBlock Text="{Binding ScrollUpDistance}" FontSize="15" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"/>
                         </Viewbox>
@@ -288,7 +324,7 @@
                             <TextBlock Text="{x:Static p:Strings.Stats_ScrollDownDistance}" FontSize="10"
                                        Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         </StackPanel>
-                        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,3,0,0">
+                        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" Margin="0,3,0,0">
                             <TextBlock Text="{Binding ScrollDownDistance}" FontSize="15" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"/>
                         </Viewbox>
@@ -342,7 +378,8 @@
                         Click="OpenAppStats_Click" Padding="12,5"/>
             </Grid>
             <Border Grid.Row="1" Style="{DynamicResource CardBorder}" Padding="8,6" Margin="0,0,0,6" VerticalAlignment="Stretch">
-                <ListBox ItemsSource="{Binding AppStatsItems}"
+                <ListBox x:Name="ActiveAppsList"
+                         ItemsSource="{Binding AppStatsItems}"
                          VerticalAlignment="Stretch"
                          Background="Transparent"
                          BorderThickness="0"
@@ -352,6 +389,9 @@
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          ScrollViewer.VerticalScrollBarVisibility="Auto">
                     <ListBox.Resources>
+                        <ControlTemplate x:Key="WindowedAppStatsListTemplate" TargetType="ListBox">
+                            <ItemsPresenter/>
+                        </ControlTemplate>
                         <Style TargetType="ScrollBar">
                             <Setter Property="Width" Value="6"/>
                             <Setter Property="MinWidth" Value="6"/>

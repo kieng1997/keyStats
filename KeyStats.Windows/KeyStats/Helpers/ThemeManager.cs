@@ -14,15 +14,17 @@ public sealed class ThemeManager : IDisposable
     public event Action? ThemeChanged;
 
     private bool _initialized;
+    private bool? _darkThemeOverride;
 
     private ThemeManager() { }
 
-    public void Initialize()
+    public void Initialize(bool? darkThemeOverride = null)
     {
         if (_initialized) return;
         _initialized = true;
 
-        IsDarkTheme = DetectSystemDarkTheme();
+        _darkThemeOverride = darkThemeOverride;
+        IsDarkTheme = _darkThemeOverride ?? DetectSystemDarkTheme();
         ApplyTheme();
 
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
@@ -33,20 +35,26 @@ public sealed class ThemeManager : IDisposable
         SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
     }
 
+    internal void SetDarkThemeOverride(bool? darkThemeOverride)
+    {
+        _darkThemeOverride = darkThemeOverride;
+        RefreshTheme();
+    }
+
     private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
     {
         if (e.Category != UserPreferenceCategory.General) return;
+        Application.Current?.Dispatcher.BeginInvoke(new Action(RefreshTheme));
+    }
 
-        var isDark = DetectSystemDarkTheme();
+    private void RefreshTheme()
+    {
+        var isDark = _darkThemeOverride ?? DetectSystemDarkTheme();
         if (isDark == IsDarkTheme) return;
 
         IsDarkTheme = isDark;
-
-        Application.Current?.Dispatcher.Invoke(() =>
-        {
-            ApplyTheme();
-            ThemeChanged?.Invoke();
-        });
+        ApplyTheme();
+        ThemeChanged?.Invoke();
     }
 
     private static bool DetectSystemDarkTheme()

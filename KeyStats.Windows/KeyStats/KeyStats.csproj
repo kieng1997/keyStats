@@ -41,6 +41,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>KeyStats.Sync.Tests</_Parameter1>
+    </AssemblyAttribute>
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>SyncServiceBaseUrl</_Parameter1>
       <_Parameter2>$(SyncServiceBaseUrl)</_Parameter2>

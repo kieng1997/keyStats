@@ -62,6 +62,8 @@ public class StatsPopupViewModel : ViewModelBase
     private string _scrollDownDistance = "0 px";
     private string _peakKPS = "0";
     private string _peakCPS = "0";
+    private string _historicalPeakKPS = "0";
+    private string _historicalPeakCPS = "0";
     private bool _isPeakPopupOpen;
     private int _selectedRangeIndex = 1;
     private int _selectedMouseTotalsRangeIndex = 3;
@@ -161,6 +163,18 @@ public class StatsPopupViewModel : ViewModelBase
     {
         get => _peakCPS;
         set => SetProperty(ref _peakCPS, value);
+    }
+
+    public string HistoricalPeakKPS
+    {
+        get => _historicalPeakKPS;
+        set => SetProperty(ref _historicalPeakKPS, value);
+    }
+
+    public string HistoricalPeakCPS
+    {
+        get => _historicalPeakCPS;
+        set => SetProperty(ref _historicalPeakCPS, value);
     }
 
     public bool IsPeakPopupOpen
@@ -440,15 +454,14 @@ public class StatsPopupViewModel : ViewModelBase
         ScrollDistance = stats.FormattedScrollDistance;
         ScrollUpDistance = stats.FormattedScrollUpDistance;
         ScrollDownDistance = stats.FormattedScrollDownDistance;
-        PeakKPS = string.Format(
-            KeyStats.Properties.Strings.Stats_HistoricalPeakFormat,
-            Math.Round(stats.PeakKPS, MidpointRounding.AwayFromZero).ToString("N0"),
-            Math.Round(result.HistoricalPeaks.PeakKPS, MidpointRounding.AwayFromZero).ToString("N0"));
-        PeakCPS = string.Format(
-            KeyStats.Properties.Strings.Stats_HistoricalPeakFormat,
-            Math.Round(stats.PeakCPS, MidpointRounding.AwayFromZero).ToString("N0"),
-            Math.Round(result.HistoricalPeaks.PeakCPS, MidpointRounding.AwayFromZero).ToString("N0"));
+        PeakKPS = FormatPeakRate(stats.PeakKPS);
+        PeakCPS = FormatPeakRate(stats.PeakCPS);
+        HistoricalPeakKPS = FormatPeakRate(result.HistoricalPeaks.PeakKPS);
+        HistoricalPeakCPS = FormatPeakRate(result.HistoricalPeaks.PeakCPS);
     }
+
+    private static string FormatPeakRate(double value) =>
+        Math.Round(value, MidpointRounding.AwayFromZero).ToString("N0");
 
     private void ApplyKeyBreakdown(List<(string Key, int Count)> items)
     {
@@ -544,8 +557,6 @@ public class StatsPopupViewModel : ViewModelBase
 
     private void Quit()
     {
-        StatsManager.Instance.FlushPendingSave();
-        InputMonitorService.Instance.StopMonitoring();
         Application.Current.Shutdown();
     }
 

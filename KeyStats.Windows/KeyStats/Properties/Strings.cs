@@ -67,6 +67,10 @@ public static class Strings
     public static string Settings_HeatmapCustomHigh => Get(nameof(Settings_HeatmapCustomHigh));
     public static string Settings_HeatmapPreviewLess => Get(nameof(Settings_HeatmapPreviewLess));
     public static string Settings_HeatmapPreviewMore => Get(nameof(Settings_HeatmapPreviewMore));
+    public static string Settings_Theme => Get(nameof(Settings_Theme));
+    public static string Settings_Theme_System => Get(nameof(Settings_Theme_System));
+    public static string Settings_Theme_Light => Get(nameof(Settings_Theme_Light));
+    public static string Settings_Theme_Dark => Get(nameof(Settings_Theme_Dark));
     public static string Settings_Language => Get(nameof(Settings_Language));
     public static string Settings_LanguageDescription => Get(nameof(Settings_LanguageDescription));
     public static string Settings_Language_System => Get(nameof(Settings_Language_System));
@@ -81,6 +85,12 @@ public static class Strings
     public static string Settings_DataImportExportDesc => Get(nameof(Settings_DataImportExportDesc));
     public static string Settings_Notifications => Get(nameof(Settings_Notifications));
     public static string Settings_NotificationsDesc => Get(nameof(Settings_NotificationsDesc));
+    public static string Settings_IgnoreBlockedKeyboardEvents => Get(nameof(Settings_IgnoreBlockedKeyboardEvents));
+    public static string Settings_IgnoreBlockedKeyboardEventsDesc => Get(nameof(Settings_IgnoreBlockedKeyboardEventsDesc));
+    public static string Settings_Backup => Get(nameof(Settings_Backup));
+    public static string Settings_BackupDesc => Get(nameof(Settings_BackupDesc));
+    public static string Settings_BackupInterval => Get(nameof(Settings_BackupInterval));
+    public static string Settings_BackupRetention => Get(nameof(Settings_BackupRetention));
     public static string Settings_DistanceCalibration => Get(nameof(Settings_DistanceCalibration));
     public static string Settings_DistanceCalibrationDesc => Get(nameof(Settings_DistanceCalibrationDesc));
     public static string Settings_MouseScrollCalibration => Get(nameof(Settings_MouseScrollCalibration));
@@ -201,7 +211,7 @@ public static class Strings
     public static string Metric_Scroll => Get(nameof(Metric_Scroll));
     public static string Stats_PeakKpsTooltipLabel => Get(nameof(Stats_PeakKpsTooltipLabel));
     public static string Stats_PeakCpsTooltipLabel => Get(nameof(Stats_PeakCpsTooltipLabel));
-    public static string Stats_HistoricalPeakFormat => Get(nameof(Stats_HistoricalPeakFormat));
+    public static string Stats_HistoricalPeakLabel => Get(nameof(Stats_HistoricalPeakLabel));
     public static string FloatingStats_WindowTitle => Get(nameof(FloatingStats_WindowTitle));
     public static string FloatingStats_Today => Get(nameof(FloatingStats_Today));
     public static string FloatingStats_PrimaryMetric => Get(nameof(FloatingStats_PrimaryMetric));

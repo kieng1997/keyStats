@@ -39,11 +39,17 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         MaxHeight = System.Math.Max(1, SystemParameters.WorkArea.Height - WindowEdgeMargin * 2);
         VersionTextBlock.Text = string.Format(KeyStats.Properties.Strings.Settings_VersionFormat, GetDisplayVersion());
+        ThemeComboBox.SelectedValue = StatsManager.Instance.Settings.ThemePreference;
+        ThemeComboBox.SelectionChanged += ThemeComboBox_SelectionChanged;
+        IgnoreBlockedKeyboardEventsCheckBox.IsChecked = StatsManager.Instance.Settings.IgnoreBlockedKeyboardEvents;
         Loaded += OnLoaded;
         Closed += OnClosed;
+        Closing += OnClosing;
         LocationChanged += OnLocationChanged;
         ThemeManager.Instance.ThemeChanged += OnThemeChanged;
         DataObject.AddPastingHandler(ScrollStepsPerRevolutionTextBox, NumericOnly_Pasting);
+        DataObject.AddPastingHandler(BackupIntervalDaysTextBox, NumericOnly_Pasting);
+        DataObject.AddPastingHandler(BackupRetentionDaysTextBox, NumericOnly_Pasting);
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -53,6 +59,7 @@ public partial class SettingsWindow : Window
         LoadFloatingStatsControls();
         LoadHeatmapColorSchemeControls();
         LoadScrollStepsControls();
+        LoadBackupSettings();
         if (App.CurrentApp?.SyncCoordinator != null)
         {
             App.CurrentApp.SyncCoordinator.StatusChanged += OnSyncStatusChanged;
@@ -60,11 +67,18 @@ public partial class SettingsWindow : Window
         RefreshSyncStatus();
     }
 
+    private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        CommitBackupSettings();
+    }
+
     private void OnClosed(object? sender, System.EventArgs e)
     {
         ThemeManager.Instance.ThemeChanged -= OnThemeChanged;
         LocationChanged -= OnLocationChanged;
         DataObject.RemovePastingHandler(ScrollStepsPerRevolutionTextBox, NumericOnly_Pasting);
+        DataObject.RemovePastingHandler(BackupIntervalDaysTextBox, NumericOnly_Pasting);
+        DataObject.RemovePastingHandler(BackupRetentionDaysTextBox, NumericOnly_Pasting);
         if (App.CurrentApp?.SyncCoordinator != null)
         {
             App.CurrentApp.SyncCoordinator.StatusChanged -= OnSyncStatusChanged;
@@ -193,6 +207,15 @@ public partial class SettingsWindow : Window
     private void NotificationSettings_Click(object sender, RoutedEventArgs e)
     {
         App.CurrentApp?.ShowNotificationSettings();
+    }
+
+    private void IgnoreBlockedKeyboardEvents_Click(object sender, RoutedEventArgs e)
+    {
+        var manager = StatsManager.Instance;
+        var enabled = IgnoreBlockedKeyboardEventsCheckBox.IsChecked == true;
+        manager.Settings.IgnoreBlockedKeyboardEvents = enabled;
+        InputMonitorService.Instance.IgnoreBlockedKeyboardEvents = enabled;
+        manager.SaveSettings();
     }
 
     private void LoadFloatingStatsControls()
@@ -439,6 +462,54 @@ public partial class SettingsWindow : Window
         _isLoadingScrollSteps = false;
     }
 
+    private void LoadBackupSettings()
+    {
+        var settings = StatsManager.Instance.Settings;
+        BackupIntervalDaysTextBox.Text = settings.BackupIntervalDays.ToString();
+        BackupRetentionDaysTextBox.Text = settings.BackupRetentionDays.ToString();
+    }
+
+    private void BackupDays_LostFocus(object sender, RoutedEventArgs e)
+    {
+        CommitBackupSettings();
+    }
+
+    private static bool TryParsePositiveDays(string? text, out int days)
+    {
+        return int.TryParse(text?.Trim(), out days) && days > 0;
+    }
+
+    private void CommitBackupSettings()
+    {
+        var settings = StatsManager.Instance.Settings;
+        var hasChanges = false;
+
+        if (TryParsePositiveDays(BackupIntervalDaysTextBox.Text, out var intervalDays))
+        {
+            hasChanges |= settings.BackupIntervalDays != intervalDays;
+            settings.BackupIntervalDays = intervalDays;
+        }
+        else
+        {
+            BackupIntervalDaysTextBox.Text = settings.BackupIntervalDays.ToString();
+        }
+
+        if (TryParsePositiveDays(BackupRetentionDaysTextBox.Text, out var retentionDays))
+        {
+            hasChanges |= settings.BackupRetentionDays != retentionDays;
+            settings.BackupRetentionDays = retentionDays;
+        }
+        else
+        {
+            BackupRetentionDaysTextBox.Text = settings.BackupRetentionDays.ToString();
+        }
+
+        if (hasChanges)
+        {
+            StatsManager.Instance.SaveSettings();
+        }
+    }
+
     private void NumericOnly_PreviewTextInput(object sender, TextCompositionEventArgs e)
     {
         e.Handled = !Regex.IsMatch(e.Text, @"^[0-9]+$");
@@ -575,6 +646,18 @@ public partial class SettingsWindow : Window
     {
         UpdateStatusTextBlock.Text = text;
         UpdateStatusTextBlock.Visibility = Visibility.Visible;
+    }
+
+    private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ThemeComboBox.SelectedItem is not ComboBoxItem { Tag: string preference }) return;
+
+        var manager = StatsManager.Instance;
+        if (preference == manager.Settings.ThemePreference) return;
+
+        manager.Settings.ThemePreference = preference;
+        manager.SaveSettings();
+        ThemeManager.Instance.SetDarkThemeOverride(manager.Settings.DarkThemeOverride);
     }
 
     private bool _isInitializingLanguage = true;

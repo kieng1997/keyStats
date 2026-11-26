@@ -31,9 +31,10 @@
                    VerticalAlignment="Bottom"/>
 
         <!-- Value -->
-        <TextBlock x:Name="ValueText" Grid.Row="1" Grid.Column="1"
-                   FontSize="15" FontWeight="SemiBold"
-                   Foreground="{DynamicResource TextPrimaryBrush}"
-                   VerticalAlignment="Top" Margin="0,0,0,0"/>
+        <Viewbox Grid.Row="1" Grid.ColumnSpan="2" StretchDirection="DownOnly"
+                 HorizontalAlignment="Center" Margin="36,0">
+            <TextBlock x:Name="ValueText" FontSize="15" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+        </Viewbox>
     </Grid>
 </UserControl>

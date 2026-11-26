@@ -121,6 +121,10 @@
   <data name="Settings_HeatmapCustomHigh" xml:space="preserve"><value>最高色</value></data>
   <data name="Settings_HeatmapPreviewLess" xml:space="preserve"><value>少</value></data>
   <data name="Settings_HeatmapPreviewMore" xml:space="preserve"><value>多</value></data>
+  <data name="Settings_Theme" xml:space="preserve"><value>主题</value></data>
+  <data name="Settings_Theme_System" xml:space="preserve"><value>跟随系统</value></data>
+  <data name="Settings_Theme_Light" xml:space="preserve"><value>白色模式</value></data>
+  <data name="Settings_Theme_Dark" xml:space="preserve"><value>黑色模式</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>语言</value></data>
   <data name="Settings_LanguageDescription" xml:space="preserve"><value>应用界面显示语言</value></data>
   <data name="Settings_Language_System" xml:space="preserve"><value>跟随系统</value></data>
@@ -135,6 +139,12 @@
   <data name="Settings_DataImportExportDesc" xml:space="preserve"><value>以 JSON 导入或导出这台设备的本机统计</value></data>
   <data name="Settings_Notifications" xml:space="preserve"><value>通知设置</value></data>
   <data name="Settings_NotificationsDesc" xml:space="preserve"><value>设置按键/点击阈值通知</value></data>
+  <data name="Settings_IgnoreBlockedKeyboardEvents" xml:space="preserve"><value>忽略被拦截的按键</value></data>
+  <data name="Settings_IgnoreBlockedKeyboardEventsDesc" xml:space="preserve"><value>开启后，不统计被 Kanata 等改键工具拦截的原按键，避免重复计数。</value></data>
+  <data name="Settings_Backup" xml:space="preserve"><value>本地备份</value></data>
+  <data name="Settings_BackupDesc" xml:space="preserve"><value>应用运行时将本机统计备份到 %LOCALAPPDATA%\KeyStats\backups，按天数保留最新备份。可通过“导入数据”恢复。</value></data>
+  <data name="Settings_BackupInterval" xml:space="preserve"><value>备份间隔（天）</value></data>
+  <data name="Settings_BackupRetention" xml:space="preserve"><value>保留天数</value></data>
   <data name="Settings_DistanceCalibration" xml:space="preserve"><value>距离校准</value></data>
   <data name="Settings_DistanceCalibrationDesc" xml:space="preserve"><value>校准鼠标移动距离系数</value></data>
   <data name="Settings_MouseScrollCalibration" xml:space="preserve"><value>鼠标滚动计算校准</value></data>
@@ -188,7 +198,7 @@
   <data name="Metric_Scroll" xml:space="preserve"><value>鼠标滚动</value></data>
   <data name="Stats_PeakKpsTooltipLabel" xml:space="preserve"><value>峰值按键速度(KPS)</value></data>
   <data name="Stats_PeakCpsTooltipLabel" xml:space="preserve"><value>峰值点击速度(CPS)</value></data>
-  <data name="Stats_HistoricalPeakFormat" xml:space="preserve"><value>{0} (历史最高:{1})</value></data>
+  <data name="Stats_HistoricalPeakLabel" xml:space="preserve"><value>历史峰值</value></data>
 
   <data name="AppStats_WindowTitle" xml:space="preserve"><value>按应用统计</value></data>
   <data name="AppStats_HeaderTitle" xml:space="preserve"><value>按应用统计</value></data>

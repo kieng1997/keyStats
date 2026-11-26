@@ -31,6 +31,8 @@ namespace KeyStats.Views
                 Console.WriteLine("PASS: missing icon still shows a complete row");
                 RunResponsiveness();
                 Console.WriteLine("PASS: icon lookup does not block the popup UI thread");
+                RunPeakProjection();
+                Console.WriteLine("PASS: today peaks exclude historical text and expose historical peaks separately");
                 Console.WriteLine("PASS: popup app-list projection");
                 return 0;
             }
@@ -59,9 +61,87 @@ namespace KeyStats.Views
             Run(blockFirstLookup: false, missingIconFor: "gamma", requireFrozenIcons: false);
         }
 
+        private static void RunPeakProjection()
+        {
+            var source = BuildSource();
+            source.Today.PeakKPS = 12.4;
+            source.Today.PeakCPS = 7.6;
+            source.Peaks = (24.6, 15.2);
+
+            RunWithViewModel(
+                source,
+                blockFirstLookup: false,
+                missingIconFor: "gamma",
+                whileLookupBlocked: null,
+                assertViewModel: (dispatcher, viewModel) =>
+                {
+                    var peaks = dispatcher.Invoke(() => (
+                        viewModel.PeakKPS,
+                        viewModel.PeakCPS,
+                        viewModel.HistoricalPeakKPS,
+                        viewModel.HistoricalPeakCPS));
+                    Check(peaks.PeakKPS == "12", $"PeakKPS was '{peaks.PeakKPS}', expected '12'");
+                    Check(peaks.PeakCPS == "8", $"PeakCPS was '{peaks.PeakCPS}', expected '8'");
+                    Check(peaks.HistoricalPeakKPS == "25", $"HistoricalPeakKPS was '{peaks.HistoricalPeakKPS}', expected '25'");
+                    Check(peaks.HistoricalPeakCPS == "15", $"HistoricalPeakCPS was '{peaks.HistoricalPeakCPS}', expected '15'");
+                });
+        }
+
         private static void Run(bool blockFirstLookup, string missingIconFor, bool requireFrozenIcons)
         {
-            StatsManager.Source = BuildSource();
+            RunWithViewModel(
+                BuildSource(),
+                blockFirstLookup,
+                missingIconFor,
+                whileLookupBlocked: blockFirstLookup
+                    ? dispatcher =>
+                    {
+                        Check(
+                            AppIconStub.FirstLookupStarted.Wait(Timeout),
+                            "no app icon lookup ever started, so the popup never projected its app list");
+
+                        var marker = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() => marker.TrySetResult(true)));
+                        var responsive = marker.Task.Wait(TimeSpan.FromSeconds(2));
+
+                        // Let the blocked lookup finish either way so the run can report and exit.
+                        AppIconStub.Release.Set();
+
+                        Check(responsive, "the popup UI thread was blocked while an app icon lookup was running");
+                    }
+                    : null,
+                assertViewModel: (dispatcher, viewModel) =>
+                {
+                    var rows = dispatcher.Invoke(() => viewModel.AppStatsItems
+                        .Select(item => (item.Name, item.KeyPresses, item.Clicks, item.Icon))
+                        .ToList());
+
+                    Check(rows.Count == 3, $"expected 3 app rows, got {rows.Count}");
+                    Check(rows[0].Name == "Alpha", $"row 0 name was '{rows[0].Name}'");
+                    Check(rows[0].KeyPresses == "742", $"row 0 key presses were '{rows[0].KeyPresses}', expected '742'");
+                    Check(rows[0].Clicks == "31", $"row 0 clicks were '{rows[0].Clicks}', expected '31'");
+                    Check(rows[1].Name == "Beta", $"row 1 name was '{rows[1].Name}'");
+                    Check(rows[1].KeyPresses == "12", $"row 1 key presses were '{rows[1].KeyPresses}', expected '12'");
+                    Check(rows[2].Name == "Gamma", $"row 2 name was '{rows[2].Name}'");
+                    Check(rows[2].Clicks == "9", $"row 2 clicks were '{rows[2].Clicks}', expected '9'");
+                    if (requireFrozenIcons)
+                    {
+                        Check(rows[0].Icon != null && rows[0].Icon!.IsFrozen, "row 'Alpha' icon is missing or not frozen");
+                        Check(rows[1].Icon != null && rows[1].Icon!.IsFrozen, "row 'Beta' icon is missing or not frozen");
+                    }
+
+                    Check(rows[2].Icon == null, "row 'Gamma' should have no icon, so the missing-icon path is covered");
+                });
+        }
+
+        private static void RunWithViewModel(
+            DailyStatsStatsSource source,
+            bool blockFirstLookup,
+            string missingIconFor,
+            Action<Dispatcher>? whileLookupBlocked,
+            Action<Dispatcher, StatsPopupViewModel> assertViewModel)
+        {
+            StatsManager.Source = source;
             AppIconStub.Reset();
             AppIconStub.BlockFirstLookup = blockFirstLookup;
             // The named app has no resolvable icon: its row must still show complete text.
@@ -108,43 +188,14 @@ namespace KeyStats.Views
 
                 // The production view model resolves an icon per app row. Wait until the first lookup is
                 // actually running, then check the UI thread still services work.
-                if (blockFirstLookup)
+                if (whileLookupBlocked != null)
                 {
-                    Check(
-                        AppIconStub.FirstLookupStarted.Wait(Timeout),
-                        "no app icon lookup ever started, so the popup never projected its app list");
-
-                    var marker = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-                    dispatcher!.BeginInvoke(DispatcherPriority.Normal, new Action(() => marker.TrySetResult(true)));
-                    var responsive = marker.Task.Wait(TimeSpan.FromSeconds(2));
-
-                    // Let the blocked lookup finish either way so the run can report and exit.
-                    AppIconStub.Release.Set();
-
-                    Check(responsive, "the popup UI thread was blocked while an app icon lookup was running");
+                    whileLookupBlocked(dispatcher!);
                 }
 
                 Check(populated.Wait(Timeout), "the app list never received its rows");
 
-                var rows = dispatcher.Invoke(() => viewModel!.AppStatsItems
-                    .Select(item => (item.Name, item.KeyPresses, item.Clicks, item.Icon))
-                    .ToList());
-
-                Check(rows.Count == 3, $"expected 3 app rows, got {rows.Count}");
-                Check(rows[0].Name == "Alpha", $"row 0 name was '{rows[0].Name}'");
-                Check(rows[0].KeyPresses == "742", $"row 0 key presses were '{rows[0].KeyPresses}', expected '742'");
-                Check(rows[0].Clicks == "31", $"row 0 clicks were '{rows[0].Clicks}', expected '31'");
-                Check(rows[1].Name == "Beta", $"row 1 name was '{rows[1].Name}'");
-                Check(rows[1].KeyPresses == "12", $"row 1 key presses were '{rows[1].KeyPresses}', expected '12'");
-                Check(rows[2].Name == "Gamma", $"row 2 name was '{rows[2].Name}'");
-                Check(rows[2].Clicks == "9", $"row 2 clicks were '{rows[2].Clicks}', expected '9'");
-                if (requireFrozenIcons)
-                {
-                    Check(rows[0].Icon != null && rows[0].Icon!.IsFrozen, "row 'Alpha' icon is missing or not frozen");
-                    Check(rows[1].Icon != null && rows[1].Icon!.IsFrozen, "row 'Beta' icon is missing or not frozen");
-                }
-
-                Check(rows[2].Icon == null, "row 'Gamma' should have no icon, so the missing-icon path is covered");
+                assertViewModel(dispatcher!, viewModel!);
             }
             finally
             {
