@@ -65,7 +65,11 @@ public sealed class SyncCoordinatorFailureTests
             () => coordinator.SyncNowAsync()).ConfigureAwait(false);
 
         Assert.AreEqual(2, new SyncStateStore(directory.Path).Load().ActiveDeviceCount);
+#if DEBUG
+        Assert.IsTrue(coordinator.GetStatus().CanManualSync);
+#else
         Assert.IsFalse(coordinator.GetStatus().CanManualSync);
+#endif
         Assert.IsNotNull(coordinator.GetStatus().LastError);
     }
 
@@ -92,7 +96,12 @@ public sealed class SyncCoordinatorFailureTests
         Assert.IsTrue(retryAt.HasValue);
         Assert.IsTrue(retryAt.Value >= before.AddSeconds(55));
         Assert.IsTrue(retryAt.Value <= after.AddSeconds(65));
+#if DEBUG
+        // Debug builds intentionally allow manual sync to bypass the client-side cooldown.
+        Assert.IsTrue(coordinator.GetStatus().CanManualSync);
+#else
         Assert.IsFalse(coordinator.GetStatus().CanManualSync);
+#endif
     }
 
     [TestMethod]
