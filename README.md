@@ -19,6 +19,13 @@ KeyStats 常驻系统托盘，统计按键次数、鼠标点击次数、鼠标�
 
 ## 界面预览
 
+点击托盘图标即可打开统计面板，在一个窗口中查看今日数据、按键排行、活跃应用和近期趋势：
+
+<p align="center">
+  <img src="docs/screenshots/tp.png" alt="托盘统计面板，汇总今日键鼠数据、按键分布、活跃应用与历史趋势" /><br />
+  <sub><strong>托盘统计面板</strong> · 点击托盘图标打开，集中查看今日概览、按键排行、活跃应用与历史曲线</sub>
+</p>
+
 <p align="center">
   <img src="docs/screenshots/heatmap.png" alt="键盘热力图，用蓝色深浅区分按键次数" /><br />
   <sub><strong>键盘热力图</strong> · 看看哪些键最常用，支持按日期范围切换（演示数据）</sub>
