@@ -43,6 +43,14 @@ KeyStats 是一个轻量的 Windows 系统托盘应用，用于统计键盘和�
 - 所有窗口自动跟随系统亮暗主题，主要窗口会记住上次的尺寸。
 - 统计数据在本地午夜自动切换新的一天，历史数据保留。
 
+### 开机自启与管理员权限
+
+- 普通权限运行时，自启写入当前用户的 `HKCU\...\CurrentVersion\Run`（值名 `KeyStats`）。
+- 以管理员身份运行时，改为注册「仅当前用户登录时触发、最高权限、交互式令牌」的计划任务 `KeyStats-<当前用户SID>`，并移除 Run 值，避免登录时启动两次。
+- 任务名只含应用名与用户 SID，不含安装路径；同一用户安装多个副本时共用一个任务，最后一次成功配置的路径生效（同时启用自启时只会启动一个实例）。
+- 已有管理员任务时，普通权限进程不会把它降级成 Run；如需更换路径，请以管理员身份运行一次 KeyStats。
+- 取消勾选会清理 Run 并保存关闭意图，同时尝试删除计划任务；若删除因权限失败会明确提示，残留任务仍可能自启，需要管理员身份重试。
+
 ## 隐私与数据
 
 KeyStats **不会记录**：
@@ -86,9 +94,15 @@ dotnet build KeyStats/KeyStats.csproj -c Release
 # 自动化测试（同步协议、加密向量、调度、持久化）
 dotnet test KeyStats.Sync.Tests/KeyStats.Sync.Tests.csproj
 
-# 打包发布，输出 dist/KeyStats-Windows-<版本>.zip
+# 打包发布，输出 dist/KeyStats-Windows-<版本>.zip；双击会请求管理员权限
 powershell -ExecutionPolicy Bypass -File ./build.ps1 -Configuration Release
+
+# 也可使用 Visual Studio 打开 KeyStats.sln 构建，按 F5 运行
 ```
+
+打包使用仓库中版本号最大的 `v*` 标签；显式传入的 `-Version` 优先。输出位于 `publish/`，ZIP 位于 `dist/KeyStats-Windows-<版本>.zip`。`build.bat` 是保留的旧版批处理入口，日常打包使用 `一键打包win.bat`。
+
+测试覆盖同步协议、加密向量、调度、批处理与统计持久化命令；UI 部分仍为手动验证。
 
 ### 同步服务地址
 
@@ -113,7 +127,30 @@ services/sync-worker/   E2EE 同步的 Cloudflare Worker 服务端
 scripts/                发布与 Scoop 发布脚本
 ```
 
-更多技术细节见 [`KeyStats.Windows/README.md`](./KeyStats.Windows/README.md) 和 [`CLAUDE.md`](./CLAUDE.md)。
+Windows 应用源码位于 `KeyStats.Windows/KeyStats/`：
+
+```text
+KeyStats/
+├── App.xaml(.cs)                 应用入口与组合根
+├── Services/                     输入监控、统计管理、通知、启动项、备份与同步
+├── ViewModels/                   托盘、统计弹窗、悬浮窗、历史、应用统计等视图模型
+├── Views/                        统计弹窗、设置、同步、历史、热力图、校准等窗口
+├── Models/                       日报、设置、应用统计与同步模型
+└── Helpers/                      Windows API、键名映射、主题、本地化与 XAML 转换器
+```
+
+更多技术细节见 [`CLAUDE.md`](./CLAUDE.md)。
+
+## 常见问题
+
+### Q: 应用无法启动？
+A: 确保 Windows 版本为 10 (1903+) 或 11；更旧系统需先升级或手动安装 .NET Framework 4.8。
+
+### Q: 统计数据丢失了？
+A: 数据存储在 `%LOCALAPPDATA%\KeyStats\`，检查 `daily_stats.json`、`history.json` 和 `settings.json` 是否存在。
+
+### Q: 如何卸载？
+A: 删除程序文件夹即可。数据会保留在用户数据目录中；如需彻底清除，可手动删除 `%LOCALAPPDATA%\KeyStats\`。
 
 ## 许可证
 
