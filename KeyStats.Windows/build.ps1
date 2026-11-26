@@ -28,7 +28,7 @@ $ProjectFile = Join-Path $ProjectDir "KeyStats.csproj"
 $OutputDir = Join-Path $ScriptDir "publish"
 $DistDir = Join-Path $ScriptDir "dist"
 
-# Version: explicit -Version wins; otherwise the nearest reachable v* tag of the current commit;
+# Version: explicit -Version wins; otherwise the newest v* tag in the repository;
 # git unavailable or no tag (source snapshot) falls back to the csproj. Tags only label the build,
 # they are never written back to source.
 function Resolve-BuildVersion {
@@ -44,9 +44,9 @@ function Resolve-BuildVersion {
     else {
         $version = $null
         try {
-            $tag = & git -C $RepoDir describe --tags --abbrev=0 --match "v[0-9]*" 2>$null
-            if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($tag)) {
-                $version = $tag.Trim()
+            $tags = & git -C $RepoDir tag --list "v[0-9]*" --sort=-v:refname 2>$null
+            if ($LASTEXITCODE -eq 0 -and $tags) {
+                $version = @($tags)[0].Trim()
             }
         }
         catch {
