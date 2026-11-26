@@ -43,9 +43,12 @@ public partial class SettingsWindow : Window
         ThemeComboBox.SelectionChanged += ThemeComboBox_SelectionChanged;
         Loaded += OnLoaded;
         Closed += OnClosed;
+        Closing += OnClosing;
         LocationChanged += OnLocationChanged;
         ThemeManager.Instance.ThemeChanged += OnThemeChanged;
         DataObject.AddPastingHandler(ScrollStepsPerRevolutionTextBox, NumericOnly_Pasting);
+        DataObject.AddPastingHandler(BackupIntervalDaysTextBox, NumericOnly_Pasting);
+        DataObject.AddPastingHandler(BackupRetentionDaysTextBox, NumericOnly_Pasting);
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -55,6 +58,7 @@ public partial class SettingsWindow : Window
         LoadFloatingStatsControls();
         LoadHeatmapColorSchemeControls();
         LoadScrollStepsControls();
+        LoadBackupSettings();
         if (App.CurrentApp?.SyncCoordinator != null)
         {
             App.CurrentApp.SyncCoordinator.StatusChanged += OnSyncStatusChanged;
@@ -62,11 +66,18 @@ public partial class SettingsWindow : Window
         RefreshSyncStatus();
     }
 
+    private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        CommitBackupSettings();
+    }
+
     private void OnClosed(object? sender, System.EventArgs e)
     {
         ThemeManager.Instance.ThemeChanged -= OnThemeChanged;
         LocationChanged -= OnLocationChanged;
         DataObject.RemovePastingHandler(ScrollStepsPerRevolutionTextBox, NumericOnly_Pasting);
+        DataObject.RemovePastingHandler(BackupIntervalDaysTextBox, NumericOnly_Pasting);
+        DataObject.RemovePastingHandler(BackupRetentionDaysTextBox, NumericOnly_Pasting);
         if (App.CurrentApp?.SyncCoordinator != null)
         {
             App.CurrentApp.SyncCoordinator.StatusChanged -= OnSyncStatusChanged;
@@ -439,6 +450,54 @@ public partial class SettingsWindow : Window
         _isLoadingScrollSteps = true;
         ScrollStepsPerRevolutionTextBox.Text = StatsManager.Instance.GetMouseScrollStepsPerRevolution().ToString();
         _isLoadingScrollSteps = false;
+    }
+
+    private void LoadBackupSettings()
+    {
+        var settings = StatsManager.Instance.Settings;
+        BackupIntervalDaysTextBox.Text = settings.BackupIntervalDays.ToString();
+        BackupRetentionDaysTextBox.Text = settings.BackupRetentionDays.ToString();
+    }
+
+    private void BackupDays_LostFocus(object sender, RoutedEventArgs e)
+    {
+        CommitBackupSettings();
+    }
+
+    private static bool TryParsePositiveDays(string? text, out int days)
+    {
+        return int.TryParse(text?.Trim(), out days) && days > 0;
+    }
+
+    private void CommitBackupSettings()
+    {
+        var settings = StatsManager.Instance.Settings;
+        var hasChanges = false;
+
+        if (TryParsePositiveDays(BackupIntervalDaysTextBox.Text, out var intervalDays))
+        {
+            hasChanges |= settings.BackupIntervalDays != intervalDays;
+            settings.BackupIntervalDays = intervalDays;
+        }
+        else
+        {
+            BackupIntervalDaysTextBox.Text = settings.BackupIntervalDays.ToString();
+        }
+
+        if (TryParsePositiveDays(BackupRetentionDaysTextBox.Text, out var retentionDays))
+        {
+            hasChanges |= settings.BackupRetentionDays != retentionDays;
+            settings.BackupRetentionDays = retentionDays;
+        }
+        else
+        {
+            BackupRetentionDaysTextBox.Text = settings.BackupRetentionDays.ToString();
+        }
+
+        if (hasChanges)
+        {
+            StatsManager.Instance.SaveSettings();
+        }
     }
 
     private void NumericOnly_PreviewTextInput(object sender, TextCompositionEventArgs e)

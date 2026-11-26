@@ -43,6 +43,7 @@ public partial class App : System.Windows.Application
     private System.Threading.Mutex? _singleInstanceMutex;
     private string? _appVersion;
     private SyncCoordinator? _syncCoordinator;
+    private ScheduledBackupService? _scheduledBackupService;
     private long _lastResumeRecoveryTicks;
     private bool _isFloatingStatsHiddenForFullscreen;
 
@@ -120,6 +121,12 @@ public partial class App : System.Windows.Application
                 syncServiceUri,
                 _appVersion);
             _syncCoordinator.Start();
+            _scheduledBackupService = new ScheduledBackupService(
+                dataFolder,
+                statsManager.ExportStatsData,
+                () => statsManager.Settings.BackupIntervalDays,
+                () => statsManager.Settings.BackupRetentionDays);
+            _scheduledBackupService.Start();
             InputMonitorService.Instance.StartMonitoring();
 
             Console.WriteLine("Creating tray icon...");
@@ -637,6 +644,8 @@ public partial class App : System.Windows.Application
         InputMonitorService.Instance.StopMonitoring();
         _syncCoordinator?.Dispose();
         _syncCoordinator = null;
+        _scheduledBackupService?.Dispose();
+        _scheduledBackupService = null;
         StatsManager.Instance.Dispose();
         ThemeManager.Instance.Dispose();
         _singleInstanceMutex?.ReleaseMutex();

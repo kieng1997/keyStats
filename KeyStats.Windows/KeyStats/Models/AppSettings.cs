@@ -13,6 +13,8 @@ public class AppSettings
     public const int DefaultFloatingStatsFontSize = 12;
     public const int MinimumFloatingStatsFontSize = 9;
     public const int MaximumFloatingStatsFontSize = 22;
+    public const int DefaultBackupIntervalDays = 1;
+    public const int DefaultBackupRetentionDays = 7;
     public const string HeatmapColorSchemeDefault = "default";
     public const string HeatmapColorSchemeWarm = "warm";
     public const string HeatmapColorSchemeSpectrum = "spectrum";
@@ -26,6 +28,8 @@ public class AppSettings
     public const string ThemeDark = "dark";
     private int _floatingStatsFontSize = DefaultFloatingStatsFontSize;
     private string _themePreference = ThemeSystem;
+    private int _backupIntervalDays = DefaultBackupIntervalDays;
+    private int _backupRetentionDays = DefaultBackupRetentionDays;
 
     [JsonPropertyName("notificationsEnabled")]
     public bool NotificationsEnabled { get; set; }
@@ -35,6 +39,20 @@ public class AppSettings
 
     [JsonPropertyName("clickNotifyThreshold")]
     public int ClickNotifyThreshold { get; set; } = 1000;
+
+    [JsonPropertyName("backupIntervalDays")]
+    public int BackupIntervalDays
+    {
+        get => _backupIntervalDays;
+        set => _backupIntervalDays = value > 0 ? value : DefaultBackupIntervalDays;
+    }
+
+    [JsonPropertyName("backupRetentionDays")]
+    public int BackupRetentionDays
+    {
+        get => _backupRetentionDays;
+        set => _backupRetentionDays = value > 0 ? value : DefaultBackupRetentionDays;
+    }
 
     [JsonPropertyName("launchAtStartup")]
     public bool LaunchAtStartup { get; set; }

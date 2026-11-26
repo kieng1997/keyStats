@@ -139,6 +139,10 @@
   <data name="Settings_DataImportExportDesc" xml:space="preserve"><value>Import or export this device's local statistics as JSON</value></data>
   <data name="Settings_Notifications" xml:space="preserve"><value>Notifications</value></data>
   <data name="Settings_NotificationsDesc" xml:space="preserve"><value>Configure key/click threshold notifications</value></data>
+  <data name="Settings_Backup" xml:space="preserve"><value>Local Backup</value></data>
+  <data name="Settings_BackupDesc" xml:space="preserve"><value>Backs up local statistics while the app is running to %LOCALAPPDATA%\KeyStats\backups, retaining the latest copies. Restore a backup with Import Data.</value></data>
+  <data name="Settings_BackupInterval" xml:space="preserve"><value>Interval (days)</value></data>
+  <data name="Settings_BackupRetention" xml:space="preserve"><value>Retention (days)</value></data>
   <data name="Settings_DistanceCalibration" xml:space="preserve"><value>Distance Calibration</value></data>
   <data name="Settings_DistanceCalibrationDesc" xml:space="preserve"><value>Calibrate the mouse movement coefficient</value></data>
   <data name="Settings_MouseScrollCalibration" xml:space="preserve"><value>Mouse Scroll Calculation Calibration</value></data>

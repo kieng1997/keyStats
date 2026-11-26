@@ -139,6 +139,10 @@
   <data name="Settings_DataImportExportDesc" xml:space="preserve"><value>以 JSON 导入或导出这台设备的本机统计</value></data>
   <data name="Settings_Notifications" xml:space="preserve"><value>通知设置</value></data>
   <data name="Settings_NotificationsDesc" xml:space="preserve"><value>设置按键/点击阈值通知</value></data>
+  <data name="Settings_Backup" xml:space="preserve"><value>本地备份</value></data>
+  <data name="Settings_BackupDesc" xml:space="preserve"><value>应用运行时将本机统计备份到 %LOCALAPPDATA%\KeyStats\backups，按天数保留最新备份。可通过“导入数据”恢复。</value></data>
+  <data name="Settings_BackupInterval" xml:space="preserve"><value>备份间隔（天）</value></data>
+  <data name="Settings_BackupRetention" xml:space="preserve"><value>保留天数</value></data>
   <data name="Settings_DistanceCalibration" xml:space="preserve"><value>距离校准</value></data>
   <data name="Settings_DistanceCalibrationDesc" xml:space="preserve"><value>校准鼠标移动距离系数</value></data>
   <data name="Settings_MouseScrollCalibration" xml:space="preserve"><value>鼠标滚动计算校准</value></data>

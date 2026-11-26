@@ -105,6 +105,54 @@
 
         <Border Style="{DynamicResource CardBorder}" Margin="0,0,0,8" Padding="14,12">
             <StackPanel>
+                <TextBlock Text="{x:Static p:Strings.Settings_Backup}" FontSize="13" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                <TextBlock Text="{x:Static p:Strings.Settings_BackupDesc}" FontSize="12"
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+
+                <Grid Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{x:Static p:Strings.Settings_BackupInterval}" FontSize="12"
+                               Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"
+                               Margin="0,0,8,0"/>
+                    <TextBox x:Name="BackupIntervalDaysTextBox"
+                             Grid.Column="1"
+                             Width="56"
+                             MaxLength="9"
+                             TextAlignment="Center"
+                             VerticalAlignment="Center"
+                             VerticalContentAlignment="Center"
+                             Padding="4,4"
+                             PreviewTextInput="NumericOnly_PreviewTextInput"
+                             LostFocus="BackupDays_LostFocus"
+                             AutomationProperties.Name="{x:Static p:Strings.Settings_BackupInterval}"/>
+                    <TextBlock Grid.Column="3"
+                               Text="{x:Static p:Strings.Settings_BackupRetention}" FontSize="12"
+                               Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"
+                               Margin="16,0,8,0"/>
+                    <TextBox x:Name="BackupRetentionDaysTextBox"
+                             Grid.Column="4"
+                             Width="56"
+                             MaxLength="9"
+                             TextAlignment="Center"
+                             VerticalAlignment="Center"
+                             VerticalContentAlignment="Center"
+                             Padding="4,4"
+                             PreviewTextInput="NumericOnly_PreviewTextInput"
+                             LostFocus="BackupDays_LostFocus"
+                             AutomationProperties.Name="{x:Static p:Strings.Settings_BackupRetention}"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <Border Style="{DynamicResource CardBorder}" Margin="0,0,0,8" Padding="14,12">
+            <StackPanel>
                 <TextBlock Text="{x:Static p:Strings.Settings_FloatingStats}" FontSize="13" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"/>
                 <TextBlock Text="{x:Static p:Strings.Settings_FloatingStatsDesc}" FontSize="12"
